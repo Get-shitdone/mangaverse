@@ -7,6 +7,7 @@ import type { MediaItem } from "@/lib/types";
 import { TYPE_LABEL, TYPE_KANJI, formatNumber, cn } from "@/lib/utils";
 import { Star, EyeOff } from "lucide-react";
 import { usePreferences } from "@/lib/store/preferences";
+import { HoverBadge } from "./HoverBadge";
 
 export function CoverCard({
   media,
@@ -39,6 +40,7 @@ export function CoverCard({
         widthCls
       )}
     >
+      <HoverBadge seed={media.id} />
       <Link
         href={`/title/${encodeURIComponent(media.id)}`}
         className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-vermillion-600 focus-visible:ring-offset-2"

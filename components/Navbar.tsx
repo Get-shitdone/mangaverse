@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
-import { Search, Library, Compass, BookOpen, Menu, X } from "lucide-react";
+import { Search, Library, Compass, BookOpen, Menu, X, Layers } from "lucide-react";
 
 const NAV = [
   { href: "/", label: "Home", icon: BookOpen },
   { href: "/browse", label: "Browse", icon: Compass },
+  { href: "/comics", label: "Comics", icon: Layers },
   { href: "/library", label: "Library", icon: Library },
 ];
 

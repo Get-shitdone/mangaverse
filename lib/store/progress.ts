@@ -4,17 +4,21 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ReadingProgress } from "@/lib/types";
 
+// IMPORTANT: derived helpers (recent, byStatus, etc.) are NOT safe to use as
+// Zustand selectors because they return new array/object references on every
+// call. Always select raw state (e.g., useProgress((s) => s.progress)) and
+// derive lists with useMemo at the call site. Helpers below are utility
+// functions, not selectors.
+
 interface ProgressState {
   progress: Record<string, ReadingProgress>;
   setProgress: (p: ReadingProgress) => void;
-  get: (mediaId: string) => ReadingProgress | undefined;
-  recent: (limit?: number) => ReadingProgress[];
   clear: (mediaId: string) => void;
 }
 
 export const useProgress = create<ProgressState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       progress: {},
       setProgress: (p) =>
         set((state) => ({
@@ -23,11 +27,6 @@ export const useProgress = create<ProgressState>()(
             [p.mediaId]: { ...p, updatedAt: Date.now() },
           },
         })),
-      get: (mediaId) => get().progress[mediaId],
-      recent: (limit = 12) =>
-        Object.values(get().progress)
-          .sort((a, b) => b.updatedAt - a.updatedAt)
-          .slice(0, limit),
       clear: (mediaId) =>
         set((state) => {
           const next = { ...state.progress };
@@ -38,3 +37,13 @@ export const useProgress = create<ProgressState>()(
     { name: "mangaverse:progress:v1" }
   )
 );
+
+// Derive helpers — pass result of useProgress((s) => s.progress) into these.
+export function recentProgress(
+  progress: Record<string, ReadingProgress>,
+  limit = 12
+): ReadingProgress[] {
+  return Object.values(progress)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, limit);
+}

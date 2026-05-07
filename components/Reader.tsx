@@ -37,8 +37,13 @@ export function Reader({
   const savedMode = usePreferences((s) => s.readerMode);
   const setSavedMode = usePreferences((s) => s.setReaderMode);
 
-  const [mode, setMode] = useState<Mode>(savedMode);
+  const [mode, setModeState] = useState<Mode>(savedMode);
   const [page, setPage] = useState(0);
+
+  // Reset to page 0 when chapter changes.
+  useEffect(() => {
+    setPage(0);
+  }, [chapterId]);
   const [showUI, setShowUI] = useState(true);
   const [showChapters, setShowChapters] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -46,6 +51,15 @@ export function Reader({
 
   const idleTimer = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Wrap the mode setter to also persist preference, avoiding an extra effect.
+  const setMode = useCallback(
+    (m: Mode) => {
+      setModeState(m);
+      setSavedMode(m);
+    },
+    [setSavedMode]
+  );
 
   const sortedChapters = useMemo(() => {
     return [...chapters].sort((a, b) => {
@@ -55,7 +69,10 @@ export function Reader({
     });
   }, [chapters]);
 
-  const currentChapter = chapters.find((c) => c.id === chapterId);
+  const currentChapter = useMemo(
+    () => chapters.find((c) => c.id === chapterId),
+    [chapters, chapterId]
+  );
   const currentIdx = sortedChapters.findIndex((c) => c.id === chapterId);
   const prevChapter = currentIdx > 0 ? sortedChapters[currentIdx - 1] : null;
   const nextChapter =
@@ -70,21 +87,20 @@ export function Reader({
     [router, mediaId, mangadexId]
   );
 
-  // Track progress
+  // Track progress. Deps intentionally minimal — chapters/setProgress are
+  // referenced inside the effect to avoid re-running when their identity
+  // changes between renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    const ch = chapters.find((c) => c.id === chapterId);
     setProgress({
       mediaId,
       chapterId,
-      chapterNumber: currentChapter?.number ?? undefined,
+      chapterNumber: ch?.number ?? undefined,
       page: page + 1,
       updatedAt: Date.now(),
     });
-  }, [mediaId, chapterId, page, currentChapter, setProgress]);
-
-  // Persist mode preference
-  useEffect(() => {
-    setSavedMode(mode);
-  }, [mode, setSavedMode]);
+  }, [mediaId, chapterId, page]);
 
   // Idle UI hide
   const resetIdle = useCallback(() => {

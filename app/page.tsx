@@ -7,10 +7,12 @@ import {
   topNovels,
   topByGenre,
 } from "@/lib/api/anilist";
+import { getCuratedComics } from "@/lib/api/comicvine";
 import { Hero } from "@/components/Hero";
 import { SectionRow } from "@/components/SectionRow";
 import { CoverCard } from "@/components/CoverCard";
 import { ContinueReadingRow } from "@/components/ContinueReadingRow";
+import { PersonalizedRows } from "@/components/PersonalizedRows";
 import Link from "next/link";
 import { ChevronRight, Flame, Award, Sparkles } from "lucide-react";
 
@@ -18,7 +20,7 @@ export const revalidate = 1800; // 30m ISR
 
 export default async function HomePage() {
   // Run all featured queries in parallel
-  const [trending, manhwa, manhua, top, fresh, novels, romance, action] = await Promise.all([
+  const [trending, manhwa, manhua, top, fresh, novels, romance, action, comics] = await Promise.all([
     trendingManga(20).catch(() => []),
     topManhwa(18).catch(() => []),
     topManhua(18).catch(() => []),
@@ -27,6 +29,7 @@ export default async function HomePage() {
     topNovels(18).catch(() => []),
     topByGenre("Romance", 18).catch(() => []),
     topByGenre("Action", 18).catch(() => []),
+    getCuratedComics().catch(() => []),
   ]);
 
   return (
@@ -34,6 +37,8 @@ export default async function HomePage() {
       <Hero items={trending} />
 
       <ContinueReadingRow />
+
+      <PersonalizedRows />
 
       {/* Editorial value props */}
       <section className="border-b-2 border-ink-900 bg-ink-900 text-cream overflow-hidden">
@@ -218,6 +223,26 @@ export default async function HomePage() {
         {novels.map((m) => (
           <div key={m.id} className="snap-start">
             <CoverCard media={m} />
+          </div>
+        ))}
+      </SectionRow>
+
+      <SectionRow
+        title="The Comic Canon"
+        subtitle="Western comics &amp; graphic novels"
+        kanji="コミック"
+        rightLabel={
+          <Link
+            href="/comics"
+            className="hidden md:inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-ink-700 hover:text-vermillion-600"
+          >
+            View All <ChevronRight className="h-3 w-3" />
+          </Link>
+        }
+      >
+        {comics.map((m, i) => (
+          <div key={m.id} className="snap-start">
+            <CoverCard media={m} rank={i + 1} />
           </div>
         ))}
       </SectionRow>

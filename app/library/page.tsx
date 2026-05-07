@@ -68,10 +68,18 @@ export default function LibraryPage() {
           <h1 className="display-headline text-5xl md:text-7xl text-ink-900 mb-3">
             My Library
           </h1>
-          <p className="text-sm uppercase tracking-widest text-ink-700">
+          <p className="text-sm uppercase tracking-widest text-ink-700 mb-4">
             {counts.all} {counts.all === 1 ? "title" : "titles"} saved · localstorage only,
             no account
           </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/library/stats" className="btn-ghost text-xs">
+              View Stats
+            </Link>
+            <Link href="/library/settings" className="btn-ghost text-xs">
+              Export / Import
+            </Link>
+          </div>
         </div>
       </header>
 

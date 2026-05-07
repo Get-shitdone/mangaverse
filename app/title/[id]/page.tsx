@@ -20,6 +20,13 @@ async function loadDetail(idParam: string) {
     const media = await getById(parseInt(rawId, 10));
     return { media, source };
   }
+  if (source === "curated" || source === "comicvine") {
+    const { getCuratedComics } = await import("@/lib/api/comicvine");
+    const comics = await getCuratedComics();
+    const media = comics.find((c) => c.id === id);
+    if (!media) return null;
+    return { media, source };
+  }
   return null;
 }
 
@@ -27,13 +34,25 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   try {
     const r = await loadDetail(params.id);
     if (!r) return {};
+    const title = r.media.title.english ?? r.media.title.romaji ?? r.media.title.display;
+    const description = stripHtml(r.media.description ?? "").slice(0, 200);
+    const cover = r.media.coverImage.large ?? r.media.coverImage.medium ?? "";
+    const accent = r.media.coverImage.color ?? "#c1272d";
+    const score = r.media.score != null ? (r.media.score / 10).toFixed(1) : "";
+    const ogUrl = `/api/og?title=${encodeURIComponent(title)}&subtitle=${encodeURIComponent(description.slice(0, 100))}&cover=${encodeURIComponent(cover)}&accent=${encodeURIComponent(accent)}&type=${encodeURIComponent(TYPE_LABEL[r.media.type] ?? "Manga")}${score ? `&score=${score}` : ""}`;
     return {
-      title: r.media.title.english ?? r.media.title.romaji ?? r.media.title.display,
-      description: stripHtml(r.media.description ?? "").slice(0, 200),
+      title,
+      description,
       openGraph: {
-        title: r.media.title.english ?? r.media.title.display,
-        description: stripHtml(r.media.description ?? "").slice(0, 200),
-        images: r.media.coverImage.large ? [r.media.coverImage.large] : undefined,
+        title,
+        description,
+        images: [{ url: ogUrl, width: 1200, height: 630, alt: title }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [ogUrl],
       },
     };
   } catch {
@@ -66,8 +85,36 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
     }
   }
 
+  // JSON-LD structured data
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": m.type === "comic" ? "ComicSeries" : "Book",
+    name: m.title.english ?? m.title.display,
+    alternateName: [m.title.romaji, m.title.native].filter(Boolean),
+    description: stripHtml(m.description ?? "").slice(0, 500),
+    image: m.coverImage.large,
+    genre: m.genres,
+    inLanguage: m.countryOfOrigin === "JP" ? "ja" : m.countryOfOrigin === "KR" ? "ko" : m.countryOfOrigin === "CN" ? "zh" : "en",
+    aggregateRating:
+      m.score != null
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: (m.score / 10).toFixed(1),
+            bestRating: 10,
+            worstRating: 0,
+            ratingCount: m.popularity ?? 1000,
+          }
+        : undefined,
+    datePublished: m.startDate,
+    numberOfEpisodes: m.chapters,
+  };
+
   return (
     <article className="bg-cream">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero */}
       <div
         className="relative overflow-hidden border-b-2 border-ink-900 bg-ink-900"
@@ -154,6 +201,14 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                   <Bookmark className="h-4 w-4" /> Start Reading
                 </Link>
               )}
+              {(m.type === "novel" || m.type === "light_novel") && (
+                <Link
+                  href={`/read-novel/${encodeURIComponent(m.id)}`}
+                  className="btn-vermillion w-full"
+                >
+                  <Bookmark className="h-4 w-4" /> Open Novel Reader
+                </Link>
+              )}
               <LibraryButton media={m} />
             </div>
 
@@ -200,7 +255,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                   {m.genres.map((g) => (
                     <Link
                       key={g}
-                      href={`/browse?genre=${encodeURIComponent(g)}`}
+                      href={`/genre/${encodeURIComponent(g)}`}
                       className="ink-stamp hover:bg-vermillion-600 hover:text-cream hover:border-vermillion-600"
                     >
                       {g}
@@ -299,18 +354,27 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                 <h3 className="display-headline text-2xl text-ink-900 mb-2">
                   Read this Novel
                 </h3>
-                <p className="text-sm text-ink-700 mb-3">
-                  Novels are linked out to publisher and library sources. Add to
-                  your library here to track your reading progress.
+                <p className="text-sm text-ink-700 mb-4">
+                  Open the novel reader. We&apos;ll surface full text from
+                  Project Gutenberg when available, otherwise a publisher
+                  preview with link-out for purchase.
                 </p>
-                <a
-                  href={`https://anilist.co/manga/${m.id.split(":")[1]}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost"
-                >
-                  View on AniList
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/read-novel/${encodeURIComponent(m.id)}`}
+                    className="btn-vermillion"
+                  >
+                    Open Reader
+                  </Link>
+                  <a
+                    href={`https://anilist.co/manga/${m.id.split(":")[1]}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost"
+                  >
+                    View on AniList
+                  </a>
+                </div>
               </section>
             )}
 

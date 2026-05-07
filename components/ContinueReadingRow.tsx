@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useProgress } from "@/lib/store/progress";
+import { useProgress, recentProgress } from "@/lib/store/progress";
 import { useLibrary } from "@/lib/store/library";
 import { SectionRow } from "./SectionRow";
-import { BookMarked, Play } from "lucide-react";
+import { Play } from "lucide-react";
 
 export function ContinueReadingRow() {
-  const recent = useProgress((s) => s.recent(12));
+  // Select RAW state — never run a function that builds a new array inside the
+  // selector or Zustand will re-render forever.
+  const progress = useProgress((s) => s.progress);
   const entries = useLibrary((s) => s.entries);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  const recent = useMemo(() => recentProgress(progress, 12), [progress]);
 
   if (!mounted) return null;
   if (!recent.length) return null;
