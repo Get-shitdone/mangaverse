@@ -6,10 +6,11 @@ import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
-import { Search, Library, Compass, BookOpen, Menu, X, Layers } from "lucide-react";
+import { Search, Library, Compass, BookOpen, Menu, X, Layers, Zap } from "lucide-react";
 
 const NAV = [
   { href: "/", label: "Home", icon: BookOpen },
+  { href: "/read-now", label: "Read Now", icon: Zap },
   { href: "/browse", label: "Browse", icon: Compass },
   { href: "/comics", label: "Comics", icon: Layers },
   { href: "/library", label: "Library", icon: Library },

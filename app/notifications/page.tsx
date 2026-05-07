@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useLibrary } from "@/lib/store/library";
 import { useNotifications } from "@/lib/store/notifications";
 import { timeAgo, cn } from "@/lib/utils";
-import { Bell, BookOpen, Check, RefreshCw, Rss } from "lucide-react";
+import { Bell, BookOpen, Check, RefreshCw } from "lucide-react";
 import type { ChapterUpdate } from "@/lib/types";
 
 export default function NotificationsPage() {
@@ -117,9 +117,6 @@ export default function NotificationsPage() {
                 <Check className="h-3 w-3" /> Mark all read
               </button>
             )}
-            <Link href="/library/settings" className="btn-ghost text-xs">
-              <Rss className="h-3 w-3" /> RSS Feed
-            </Link>
           </div>
         </div>
       </header>

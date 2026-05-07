@@ -4,33 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLibrary } from "@/lib/store/library";
 import { useProgress } from "@/lib/store/progress";
-import { ChevronLeft, Download, Upload, Trash2, AlertTriangle, Check, Rss, Copy } from "lucide-react";
+import { ChevronLeft, Download, Upload, Trash2, Check, AlertTriangle } from "lucide-react";
 
 interface ExportPayload {
   schema: "mangaverse-library-v1";
   exportedAt: string;
   library: ReturnType<typeof useLibrary.getState>["entries"];
   progress: ReturnType<typeof useProgress.getState>["progress"];
-}
-
-function buildFeedUrl(entries: Record<string, any>): string {
-  const subs = Object.values(entries)
-    .filter((e: any) => e.status !== "dropped")
-    .slice(0, 40)
-    .map((e: any) => ({
-      mediaId: e.mediaId,
-      title: e.title,
-      mangadexId: e.mangadexId ?? null,
-    }));
-  if (subs.length === 0) return "";
-  const json = JSON.stringify(subs);
-  // base64url encoding (browser-safe)
-  const b64 = btoa(unescape(encodeURIComponent(json)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-  if (typeof window === "undefined") return `/feed.xml?library=${b64}`;
-  return `${window.location.origin}/feed.xml?library=${b64}`;
 }
 
 export default function SettingsPage() {
@@ -41,7 +21,6 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
-  const [feedCopied, setFeedCopied] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -61,7 +40,7 @@ export default function SettingsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setStatus({ type: "success", msg: `Exported ${Object.keys(entries).length} titles` });
+    setStatus({ type: "success", msg: `Saved ${Object.keys(entries).length} titles to file` });
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,24 +51,22 @@ export default function SettingsPage() {
       const data = JSON.parse(text) as ExportPayload;
 
       if (data.schema !== "mangaverse-library-v1") {
-        setStatus({ type: "error", msg: "Unrecognized file schema. Expected mangaverse-library-v1." });
+        setStatus({ type: "error", msg: "That doesn't look like a Mangaverse backup file." });
         return;
       }
 
-      // Merge: imported entries take priority for shared keys
       const merged = { ...entries, ...data.library };
       hydrate(merged);
 
-      // Merge progress similarly using the store directly
       const progStore = useProgress.getState();
       Object.values(data.progress ?? {}).forEach((p) => progStore.setProgress(p));
 
       setStatus({
         type: "success",
-        msg: `Imported ${Object.keys(data.library).length} titles + ${Object.keys(data.progress ?? {}).length} progress entries`,
+        msg: `Restored ${Object.keys(data.library).length} titles`,
       });
     } catch (err) {
-      setStatus({ type: "error", msg: `Import failed: ${(err as Error).message}` });
+      setStatus({ type: "error", msg: "Couldn't read that file. Make sure it's a valid backup." });
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -101,10 +78,9 @@ export default function SettingsPage() {
       return;
     }
     hydrate({});
-    // Wipe progress by clearing each
     const progStore = useProgress.getState();
     Object.keys(progStore.progress).forEach((id) => progStore.clear(id));
-    setStatus({ type: "success", msg: "Library and progress wiped" });
+    setStatus({ type: "success", msg: "Library cleared" });
     setConfirmReset(false);
   };
 
@@ -123,12 +99,12 @@ export default function SettingsPage() {
             Library Settings
           </h1>
           <p className="mt-3 text-sm uppercase tracking-widest text-ink-700">
-            Export, import, and manage your local data
+            Back up or clear your reading list
           </p>
         </div>
       </header>
 
-      <div className="mx-auto max-w-3xl px-4 md:px-8 mt-12 space-y-8">
+      <div className="mx-auto max-w-2xl px-4 md:px-8 mt-12 space-y-6">
         {status && (
           <div
             className={`panel-border-sm flex items-center gap-3 p-4 ${
@@ -146,124 +122,55 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* Export */}
+        {/* Backup */}
         <section className="panel-border bg-cream p-6 md:p-8">
-          <h2 className="display-headline text-2xl md:text-3xl text-ink-900 mb-3 flex items-baseline gap-3">
-            Export Library
-            <span className="font-jp text-base text-vermillion-600">輸出</span>
+          <h2 className="display-headline text-2xl md:text-3xl text-ink-900 mb-2">
+            Back up
           </h2>
           <p className="text-sm text-ink-700 mb-5">
-            Download a JSON backup of your library, ratings, status, and reading
-            progress. You can import it on another browser or device.
+            {mounted
+              ? `Save a copy of your ${Object.keys(entries).length} title${
+                  Object.keys(entries).length === 1 ? "" : "s"
+                } and reading progress to a file you can restore later or share between devices.`
+              : "Save a copy of your library to a file."}
           </p>
-          <div className="flex flex-wrap items-center gap-3 text-xs">
-            <span className="ink-stamp">
-              {mounted ? Object.keys(entries).length : 0} titles
-            </span>
-            <span className="ink-stamp">
-              {mounted ? Object.keys(progress).length : 0} progress entries
-            </span>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={exportLibrary} className="btn-vermillion">
+              <Download className="h-4 w-4" /> Save backup
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={handleImport}
+              className="hidden"
+              id="library-import"
+            />
+            <label htmlFor="library-import" className="btn-ghost cursor-pointer inline-flex">
+              <Upload className="h-4 w-4" /> Restore backup
+            </label>
           </div>
-          <button onClick={exportLibrary} className="btn-vermillion mt-5">
-            <Download className="h-4 w-4" /> Export JSON
-          </button>
         </section>
 
-        {/* Import */}
+        {/* Clear */}
         <section className="panel-border bg-cream p-6 md:p-8">
-          <h2 className="display-headline text-2xl md:text-3xl text-ink-900 mb-3 flex items-baseline gap-3">
-            Import Library
-            <span className="font-jp text-base text-vermillion-600">輸入</span>
+          <h2 className="display-headline text-2xl md:text-3xl text-ink-900 mb-2">
+            Clear library
           </h2>
           <p className="text-sm text-ink-700 mb-5">
-            Restore a previous backup. Import will merge with your current
-            library, with the imported file taking precedence on conflicts.
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleImport}
-            className="hidden"
-            id="library-import"
-          />
-          <label
-            htmlFor="library-import"
-            className="btn-ghost cursor-pointer inline-flex"
-          >
-            <Upload className="h-4 w-4" /> Choose JSON file
-          </label>
-        </section>
-
-        {/* RSS feed */}
-        <section className="panel-border bg-cream p-6 md:p-8">
-          <h2 className="display-headline text-2xl md:text-3xl text-ink-900 mb-3 flex items-baseline gap-3">
-            RSS Feed
-            <span className="font-jp text-base text-vermillion-600">配信</span>
-          </h2>
-          <p className="text-sm text-ink-700 mb-5">
-            Subscribe to your library&apos;s new chapters in any RSS reader. The feed
-            URL encodes your library locally — no account, no tracking.
-          </p>
-
-          {mounted && Object.keys(entries).length > 0 ? (
-            <div className="space-y-3">
-              <div className="border-2 border-ink-900 bg-cream-100 px-3 py-2 font-mono text-[11px] break-all">
-                {buildFeedUrl(entries)}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(buildFeedUrl(entries));
-                      setFeedCopied(true);
-                      window.setTimeout(() => setFeedCopied(false), 2000);
-                    } catch {
-                      setStatus({ type: "error", msg: "Couldn't copy — select the URL manually." });
-                    }
-                  }}
-                  className="btn-vermillion text-xs"
-                >
-                  {feedCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  {feedCopied ? "Copied!" : "Copy feed URL"}
-                </button>
-                <a
-                  href={buildFeedUrl(entries)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost text-xs"
-                >
-                  <Rss className="h-3 w-3" /> Preview
-                </a>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-ink-500 italic">
-              Add titles to your library to generate a personalized feed URL.
-            </p>
-          )}
-        </section>
-
-        {/* Reset */}
-        <section className="panel-border bg-vermillion-50 border-vermillion-600 p-6 md:p-8">
-          <h2 className="display-headline text-2xl md:text-3xl text-vermillion-700 mb-3 flex items-baseline gap-3">
-            Wipe Library
-            <span className="font-jp text-base text-vermillion-600">削除</span>
-          </h2>
-          <p className="text-sm text-vermillion-800 mb-5">
-            Clear your entire library and reading progress. This action cannot
-            be undone — export a backup first if you want to keep a copy.
+            Remove all titles and reading progress. This can&apos;t be undone — make a
+            backup first if you want to keep your list.
           </p>
           <button
             onClick={resetAll}
             className={`inline-flex items-center justify-center gap-2 border-2 px-5 py-3 text-sm font-bold uppercase tracking-widest transition-all ${
               confirmReset
                 ? "border-vermillion-700 bg-vermillion-700 text-cream hover:bg-vermillion-800"
-                : "border-vermillion-700 bg-cream text-vermillion-700 hover:bg-vermillion-100"
+                : "border-ink-900 bg-cream text-ink-900 hover:bg-vermillion-600 hover:border-vermillion-600 hover:text-cream"
             }`}
           >
             <Trash2 className="h-4 w-4" />
-            {confirmReset ? "Click again to confirm" : "Wipe everything"}
+            {confirmReset ? "Click again to confirm" : "Clear library"}
           </button>
         </section>
       </div>

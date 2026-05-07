@@ -74,10 +74,10 @@ export default function LibraryPage() {
           </p>
           <div className="flex flex-wrap gap-2">
             <Link href="/library/stats" className="btn-ghost text-xs">
-              View Stats
+              My Stats
             </Link>
             <Link href="/library/settings" className="btn-ghost text-xs">
-              Export / Import
+              Settings
             </Link>
           </div>
         </div>

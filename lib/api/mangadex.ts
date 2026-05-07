@@ -1,4 +1,4 @@
-import type { Chapter, ChapterPages } from "@/lib/types";
+import type { Chapter, ChapterPages, MediaItem } from "@/lib/types";
 
 const MANGADEX_API = "https://api.mangadex.org";
 const MANGADEX_UPLOADS = "https://uploads.mangadex.org";
@@ -205,4 +205,149 @@ export async function chaptersSince(
 export function formatPublishSince(epochMs: number): string {
   const d = new Date(epochMs);
   return d.toISOString().split(".")[0];
+}
+
+// ---------- MangaDex-native listings (guaranteed-readable titles) ----------
+
+const MD_LIST_FIELDS = {
+  "includes[]": ["cover_art", "author", "artist"],
+  "contentRating[]": ["safe", "suggestive"],
+  "availableTranslatedLanguage[]": ["en"],
+  "hasAvailableChapters": "true",
+};
+
+export async function listMangaDex(
+  sort: "latestUploadedChapter" | "followedCount" | "rating" | "createdAt",
+  limit = 18,
+  offset = 0
+): Promise<MediaItem[]> {
+  try {
+    const data = await md<any[]>("/manga", {
+      ...MD_LIST_FIELDS,
+      [`order[${sort}]`]: "desc",
+      limit,
+      offset,
+    });
+    return (data.data ?? []).map((m: any) => mediaItemFromMDRaw(m));
+  } catch {
+    return [];
+  }
+}
+
+export async function getMangaWithChapters(id: string): Promise<{
+  manga: MDManga | null;
+  mediaItem: MediaItem | null;
+  chapters: Chapter[];
+}> {
+  try {
+    const manga = await getManga(id);
+    if (!manga) return { manga: null, mediaItem: null, chapters: [] };
+    const list = await getChapters(id, "en", 200);
+    return {
+      manga,
+      mediaItem: mediaItemFromMD(manga),
+      chapters: list.chapters,
+    };
+  } catch {
+    return { manga: null, mediaItem: null, chapters: [] };
+  }
+}
+
+// Map an MDManga into the unified MediaItem schema for use with CoverCard etc.
+export function mediaItemFromMD(m: MDManga): MediaItem {
+  const cover = m.coverFileName
+    ? coverUrl(m.id, m.coverFileName, 512)
+    : null;
+  return {
+    id: `mangadex:${m.id}`,
+    source: "mangadex",
+    type: "manga",
+    title: {
+      display: m.title,
+      english: m.title,
+      romaji: m.altTitles[0] ?? null,
+      native: m.altTitles.find((t) => /[一-龯ㄱ-ㅎ가-힣]/.test(t)) ?? null,
+    },
+    description: m.description,
+    coverImage: {
+      large: cover,
+      medium: m.coverFileName ? coverUrl(m.id, m.coverFileName, 256) : null,
+      color: null,
+    },
+    bannerImage: null,
+    genres: m.tags.slice(0, 8),
+    tags: m.tags,
+    status:
+      m.status === "ongoing"
+        ? "ongoing"
+        : m.status === "completed"
+        ? "completed"
+        : m.status === "hiatus"
+        ? "hiatus"
+        : m.status === "cancelled"
+        ? "cancelled"
+        : null,
+    year: m.year,
+    score: null,
+    popularity: null,
+    isAdult: m.contentRating === "erotica" || m.contentRating === "pornographic",
+  };
+}
+
+// Same conversion but takes raw MD response (skips the intermediate MDManga shape).
+function mediaItemFromMDRaw(m: any): MediaItem {
+  const attrs = m.attributes ?? {};
+  const cover = m.relationships?.find((r: any) => r.type === "cover_art");
+  const fileName = cover?.attributes?.fileName;
+
+  const titleObj = attrs.title ?? {};
+  const display = titleObj.en ?? titleObj["en-us"] ?? Object.values(titleObj)[0] ?? "Untitled";
+  const altList: string[] = (attrs.altTitles ?? [])
+    .map((t: Record<string, string>) => Object.values(t)[0] as string)
+    .filter(Boolean);
+
+  const tagsList: string[] = (attrs.tags ?? [])
+    .map((t: any) => {
+      const names = t.attributes?.name ?? {};
+      return names.en ?? names["en-us"] ?? Object.values(names)[0];
+    })
+    .filter(Boolean);
+
+  const desc = attrs.description ?? {};
+  const description = desc.en ?? desc["en-us"] ?? Object.values(desc)[0] ?? "";
+
+  return {
+    id: `mangadex:${m.id}`,
+    source: "mangadex",
+    type: "manga",
+    title: {
+      display: display as string,
+      english: (titleObj.en as string) ?? null,
+      romaji: altList[0] ?? null,
+      native: altList.find((t) => /[一-龯ㄱ-ㅎ가-힣]/.test(t)) ?? null,
+    },
+    description: description as string,
+    coverImage: {
+      large: fileName ? coverUrl(m.id, fileName, 512) : null,
+      medium: fileName ? coverUrl(m.id, fileName, 256) : null,
+      color: null,
+    },
+    bannerImage: null,
+    genres: tagsList.slice(0, 8),
+    tags: tagsList,
+    status:
+      attrs.status === "ongoing"
+        ? "ongoing"
+        : attrs.status === "completed"
+        ? "completed"
+        : attrs.status === "hiatus"
+        ? "hiatus"
+        : attrs.status === "cancelled"
+        ? "cancelled"
+        : null,
+    year: attrs.year ?? null,
+    score: null,
+    popularity: null,
+    isAdult: attrs.contentRating === "erotica" || attrs.contentRating === "pornographic",
+  };
 }

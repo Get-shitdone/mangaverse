@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getById } from "@/lib/api/anilist";
-import { findFirstMangaForTitle, getChapters, coverUrl } from "@/lib/api/mangadex";
+import { findFirstMangaForTitle, getChapters, coverUrl, getMangaWithChapters } from "@/lib/api/mangadex";
 import { stripHtml, TYPE_LABEL, TYPE_KANJI, formatNumber } from "@/lib/utils";
 import { CoverCard } from "@/components/CoverCard";
 import { LibraryButton } from "@/components/LibraryButton";
@@ -19,6 +19,11 @@ async function loadDetail(idParam: string) {
   if (source === "anilist") {
     const media = await getById(parseInt(rawId, 10));
     return { media, source };
+  }
+  if (source === "mangadex") {
+    const { mediaItem } = await getMangaWithChapters(rawId);
+    if (!mediaItem) return null;
+    return { media: mediaItem, source };
   }
   if (source === "curated" || source === "comicvine") {
     const { getCuratedComics } = await import("@/lib/api/comicvine");
@@ -71,17 +76,36 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
   let chapters: Awaited<ReturnType<typeof getChapters>>["chapters"] = [];
   let mdCoverFallback: string | null = null;
 
-  if (m.type !== "novel" && m.type !== "light_novel" && m.type !== "comic") {
+  if (r.source === "mangadex") {
+    // Already a MangaDex title — fetch chapters directly without resolution.
+    const rawMdId = m.id.split(":")[1];
+    mangadexId = rawMdId;
     try {
-      const md = await findFirstMangaForTitle(m.title.english ?? m.title.romaji ?? m.title.display);
-      if (md) {
-        mangadexId = md.id;
-        if (md.coverFileName) mdCoverFallback = coverUrl(md.id, md.coverFileName, 512);
-        const list = await getChapters(md.id, "en", 200);
-        chapters = list.chapters;
-      }
+      const list = await getChapters(rawMdId, "en", 200);
+      chapters = list.chapters;
     } catch {
-      // ignore — graceful fallback to "external" view
+      // ignore
+    }
+  } else if (m.type !== "novel" && m.type !== "light_novel" && m.type !== "comic") {
+    // Try multiple title variants for better hit rate.
+    const candidates = [m.title.english, m.title.romaji, m.title.display].filter(
+      (t): t is string => Boolean(t)
+    );
+    for (const candidate of candidates) {
+      try {
+        const md = await findFirstMangaForTitle(candidate);
+        if (md) {
+          mangadexId = md.id;
+          if (md.coverFileName) mdCoverFallback = coverUrl(md.id, md.coverFileName, 512);
+          const list = await getChapters(md.id, "en", 200);
+          if (list.chapters.length > 0) {
+            chapters = list.chapters;
+            break;
+          }
+        }
+      } catch {
+        // try next candidate
+      }
     }
   }
 

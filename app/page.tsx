@@ -7,6 +7,7 @@ import {
   topNovels,
   topByGenre,
 } from "@/lib/api/anilist";
+import { listMangaDex } from "@/lib/api/mangadex";
 import { getCuratedComics } from "@/lib/api/comicvine";
 import { Hero } from "@/components/Hero";
 import { SectionRow } from "@/components/SectionRow";
@@ -14,13 +15,29 @@ import { CoverCard } from "@/components/CoverCard";
 import { ContinueReadingRow } from "@/components/ContinueReadingRow";
 import { PersonalizedRows } from "@/components/PersonalizedRows";
 import Link from "next/link";
-import { ChevronRight, Flame, Award, Sparkles } from "lucide-react";
+import { ChevronRight, Flame, Award, Sparkles, BookOpen } from "lucide-react";
 
 export const revalidate = 1800; // 30m ISR
 
 export default async function HomePage() {
-  // Run all featured queries in parallel
-  const [trending, manhwa, manhua, top, fresh, novels, romance, action, comics] = await Promise.all([
+  // Run all featured queries in parallel.
+  // Note: AniList provides metadata but many titles aren't on MangaDex due to
+  // licensing — those return empty chapter lists. To guarantee readability, we
+  // also pull listings DIRECTLY from MangaDex (mdLatest / mdPopular) so the
+  // "Read Now" row is always immediately readable.
+  const [
+    trending,
+    manhwa,
+    manhua,
+    top,
+    fresh,
+    novels,
+    romance,
+    action,
+    comics,
+    mdLatest,
+    mdPopular,
+  ] = await Promise.all([
     trendingManga(20).catch(() => []),
     topManhwa(18).catch(() => []),
     topManhua(18).catch(() => []),
@@ -30,6 +47,8 @@ export default async function HomePage() {
     topByGenre("Romance", 18).catch(() => []),
     topByGenre("Action", 18).catch(() => []),
     getCuratedComics().catch(() => []),
+    listMangaDex("latestUploadedChapter", 24).catch(() => []),
+    listMangaDex("followedCount", 24).catch(() => []),
   ]);
 
   return (
@@ -39,6 +58,36 @@ export default async function HomePage() {
       <ContinueReadingRow />
 
       <PersonalizedRows />
+
+      {/* Read Now — direct from MangaDex (always readable) */}
+      <SectionRow
+        title="Read Now"
+        subtitle="Just-updated chapters · click to start reading"
+        kanji="今すぐ読む"
+        rightLabel={
+          <span className="hidden md:inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-vermillion-600">
+            <BookOpen className="h-3 w-3" /> Live from MangaDex
+          </span>
+        }
+      >
+        {mdLatest.map((m) => (
+          <div key={m.id} className="snap-start">
+            <CoverCard media={m} />
+          </div>
+        ))}
+      </SectionRow>
+
+      <SectionRow
+        title="Most Followed"
+        subtitle="The titles readers are obsessed with"
+        kanji="人気作"
+      >
+        {mdPopular.map((m, i) => (
+          <div key={m.id} className="snap-start">
+            <CoverCard media={m} rank={i + 1} />
+          </div>
+        ))}
+      </SectionRow>
 
       {/* Editorial value props */}
       <section className="border-b-2 border-ink-900 bg-ink-900 text-cream overflow-hidden">
