@@ -2,7 +2,11 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Mangaverse — Read Manhwa, Manga, Comics & Novels",
+    // Keep `name` short — Android Chrome's auto-generated splash screen renders
+    // this string verbatim under the icon, and there's no manifest field that
+    // suppresses it. The longer pitch lives in `description` so install
+    // prompts and search engines still surface it.
+    name: "Mangaverse",
     short_name: "Mangaverse",
     description:
       "A premium reading platform for manhwa, manga, comics, and novels with offline reading, multi-source aggregation, and a Jump-magazine inspired interface.",
