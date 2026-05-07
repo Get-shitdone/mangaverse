@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
 import { Search, Library, Compass, BookOpen, Menu, X, Layers } from "lucide-react";
 
@@ -69,6 +70,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <Link
             href="/search"
             aria-label="Search"

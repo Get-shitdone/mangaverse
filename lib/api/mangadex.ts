@@ -161,3 +161,46 @@ export async function findFirstMangaForTitle(title: string): Promise<MDManga | n
   const exact = list.find((m) => m.title.toLowerCase() === title.toLowerCase());
   return exact ?? list[0];
 }
+
+// Fetch chapters published after a given ISO timestamp. Returns most-recent first.
+export async function chaptersSince(
+  mangaId: string,
+  sinceIso: string,
+  language = "en",
+  limit = 20
+): Promise<Chapter[]> {
+  const params: Record<string, string | string[] | number> = {
+    "translatedLanguage[]": [language],
+    "order[publishAt]": "desc",
+    "includes[]": ["scanlation_group"],
+    "contentRating[]": ["safe", "suggestive", "erotica"],
+    limit,
+    publishAtSince: sinceIso,
+  };
+  try {
+    const data = await md<any[]>(`/manga/${mangaId}/feed`, params);
+    return (data.data ?? []).map((c: any) => {
+      const group = c.relationships?.find((r: any) => r.type === "scanlation_group");
+      return {
+        id: c.id,
+        source: "mangadex" as const,
+        number: c.attributes?.chapter ?? null,
+        volume: c.attributes?.volume ?? null,
+        title: c.attributes?.title ?? null,
+        language: c.attributes?.translatedLanguage ?? language,
+        pages: c.attributes?.pages ?? 0,
+        publishedAt: c.attributes?.publishAt,
+        scanlationGroup: group?.attributes?.name,
+        externalUrl: c.attributes?.externalUrl ?? null,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+// publishAt format MangaDex expects: YYYY-MM-DDTHH:MM:SS (no milliseconds, no zone)
+export function formatPublishSince(epochMs: number): string {
+  const d = new Date(epochMs);
+  return d.toISOString().split(".")[0];
+}

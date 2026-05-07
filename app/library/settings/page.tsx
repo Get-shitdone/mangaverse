@@ -4,13 +4,33 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLibrary } from "@/lib/store/library";
 import { useProgress } from "@/lib/store/progress";
-import { ChevronLeft, Download, Upload, Trash2, AlertTriangle, Check } from "lucide-react";
+import { ChevronLeft, Download, Upload, Trash2, AlertTriangle, Check, Rss, Copy } from "lucide-react";
 
 interface ExportPayload {
   schema: "mangaverse-library-v1";
   exportedAt: string;
   library: ReturnType<typeof useLibrary.getState>["entries"];
   progress: ReturnType<typeof useProgress.getState>["progress"];
+}
+
+function buildFeedUrl(entries: Record<string, any>): string {
+  const subs = Object.values(entries)
+    .filter((e: any) => e.status !== "dropped")
+    .slice(0, 40)
+    .map((e: any) => ({
+      mediaId: e.mediaId,
+      title: e.title,
+      mangadexId: e.mangadexId ?? null,
+    }));
+  if (subs.length === 0) return "";
+  const json = JSON.stringify(subs);
+  // base64url encoding (browser-safe)
+  const b64 = btoa(unescape(encodeURIComponent(json)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  if (typeof window === "undefined") return `/feed.xml?library=${b64}`;
+  return `${window.location.origin}/feed.xml?library=${b64}`;
 }
 
 export default function SettingsPage() {
@@ -21,6 +41,7 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [feedCopied, setFeedCopied] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -172,6 +193,55 @@ export default function SettingsPage() {
           >
             <Upload className="h-4 w-4" /> Choose JSON file
           </label>
+        </section>
+
+        {/* RSS feed */}
+        <section className="panel-border bg-cream p-6 md:p-8">
+          <h2 className="display-headline text-2xl md:text-3xl text-ink-900 mb-3 flex items-baseline gap-3">
+            RSS Feed
+            <span className="font-jp text-base text-vermillion-600">配信</span>
+          </h2>
+          <p className="text-sm text-ink-700 mb-5">
+            Subscribe to your library&apos;s new chapters in any RSS reader. The feed
+            URL encodes your library locally — no account, no tracking.
+          </p>
+
+          {mounted && Object.keys(entries).length > 0 ? (
+            <div className="space-y-3">
+              <div className="border-2 border-ink-900 bg-cream-100 px-3 py-2 font-mono text-[11px] break-all">
+                {buildFeedUrl(entries)}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(buildFeedUrl(entries));
+                      setFeedCopied(true);
+                      window.setTimeout(() => setFeedCopied(false), 2000);
+                    } catch {
+                      setStatus({ type: "error", msg: "Couldn't copy — select the URL manually." });
+                    }
+                  }}
+                  className="btn-vermillion text-xs"
+                >
+                  {feedCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {feedCopied ? "Copied!" : "Copy feed URL"}
+                </button>
+                <a
+                  href={buildFeedUrl(entries)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-ghost text-xs"
+                >
+                  <Rss className="h-3 w-3" /> Preview
+                </a>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-ink-500 italic">
+              Add titles to your library to generate a personalized feed URL.
+            </p>
+          )}
         </section>
 
         {/* Reset */}

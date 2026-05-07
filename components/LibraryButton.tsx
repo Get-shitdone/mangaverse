@@ -14,7 +14,13 @@ const STATUS_LABELS: Record<LibraryStatus, string> = {
   dropped: "Dropped",
 };
 
-export function LibraryButton({ media }: { media: MediaItem }) {
+export function LibraryButton({
+  media,
+  mangadexId,
+}: {
+  media: MediaItem;
+  mangadexId?: string | null;
+}) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const entries = useLibrary((s) => s.entries);
@@ -42,6 +48,7 @@ export function LibraryButton({ media }: { media: MediaItem }) {
       title: media.title.english ?? media.title.romaji ?? media.title.display,
       cover: media.coverImage.large ?? media.coverImage.medium,
       status,
+      mangadexId: mangadexId ?? null,
     });
     setOpen(false);
   };

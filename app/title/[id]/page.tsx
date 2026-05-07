@@ -209,7 +209,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                   <Bookmark className="h-4 w-4" /> Open Novel Reader
                 </Link>
               )}
-              <LibraryButton media={m} />
+              <LibraryButton media={m} mangadexId={mangadexId} />
             </div>
 
             {/* Stats */}

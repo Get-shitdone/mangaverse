@@ -99,4 +99,20 @@ export interface LibraryEntry {
   notes?: string;
   addedAt: number;
   updatedAt: number;
+  // Optional MangaDex manga id captured at add-time so the chapter-update
+  // poller can query MangaDex without re-resolving by title.
+  mangadexId?: string | null;
+}
+
+export interface ChapterUpdate {
+  mediaId: string;
+  mediaTitle: string;
+  cover?: string | null;
+  chapterId: string;
+  chapterNumber: string | null;
+  chapterTitle: string | null;
+  publishedAt: string;
+  scanlationGroup?: string | null;
+  language: string;
+  mangadexId: string;
 }
