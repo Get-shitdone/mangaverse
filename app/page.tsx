@@ -17,7 +17,11 @@ import { PersonalizedRows } from "@/components/PersonalizedRows";
 import Link from "next/link";
 import { ChevronRight, Flame, Award, Sparkles, BookOpen } from "lucide-react";
 
-export const revalidate = 1800; // 30m ISR
+// Revalidate every 5 minutes so trending and "what's hot right now" actually
+// reflects what's hot. 30 minutes (the previous window) was too stale for a
+// reading platform — chapters drop hourly on MangaDex during peak times and
+// the home page should feel like a wire feed.
+export const revalidate = 300;
 
 export default async function HomePage() {
   // Run all featured queries in parallel.

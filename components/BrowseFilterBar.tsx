@@ -1,8 +1,15 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+
+// Auto-hide threshold — only collapse the bar after the user has scrolled at
+// least this many pixels past the top of the page. Stops it twitching for a
+// 1-finger nudge.
+const HIDE_THRESHOLD = 120;
+// Direction-change threshold — small reverse scrolls (rubber-banding etc.) shouldn't reveal it.
+const DIR_THRESHOLD = 8;
 
 const COUNTRIES = [
   { value: "", label: "All" },
@@ -42,6 +49,37 @@ export function BrowseFilterBar({ genres }: { genres: string[] }) {
   const [isPending, startTransition] = useTransition();
   const [showGenres, setShowGenres] = useState(false);
 
+  // Auto-hide on scroll-down, reveal on scroll-up. Lets the user see the grid
+  // without filters chewing screen real estate, but they're a flick away.
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        const y = window.scrollY;
+        const delta = y - lastY.current;
+        // Hide while scrolling down past threshold
+        if (y > HIDE_THRESHOLD && delta > DIR_THRESHOLD) {
+          setHidden(true);
+        } else if (delta < -DIR_THRESHOLD || y <= HIDE_THRESHOLD) {
+          // Reveal on any meaningful upward scroll, or when near the top
+          setHidden(false);
+        }
+        lastY.current = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
   const update = (key: string, value: string) => {
     const next = new URLSearchParams(sp.toString());
     if (value) next.set(key, value);
@@ -55,7 +93,13 @@ export function BrowseFilterBar({ genres }: { genres: string[] }) {
   const current = (key: string) => sp.get(key) ?? "";
 
   return (
-    <div className="border-b-2 border-ink-900 bg-cream sticky top-[57px] z-30 backdrop-blur">
+    <div
+      className={cn(
+        "border-b-2 border-ink-900 bg-cream sticky top-[57px] z-30 backdrop-blur",
+        "transition-transform duration-300 ease-out",
+        hidden ? "-translate-y-full" : "translate-y-0"
+      )}
+    >
       <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-3 md:py-4 space-y-3 md:space-y-4">
         <div className="flex flex-col md:flex-row md:flex-wrap gap-2 md:gap-3 md:items-center">
           <FilterGroup label="Type">

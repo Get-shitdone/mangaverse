@@ -45,9 +45,15 @@ export default async function BrowsePage({ searchParams }: { searchParams: Searc
     return "Browse";
   })();
 
+  // Cleaner subtitle: just the total count for searches and the running page
+  // tally otherwise. Avoids the awkward "Showing 28 of 5,000 titles" string.
   const subtitle = (() => {
-    if (searchParams.q) return `${pageInfo.total.toLocaleString()} matches`;
-    return `Showing ${results.length} of ${pageInfo.total.toLocaleString()} titles`;
+    if (searchParams.q) {
+      return `${pageInfo.total.toLocaleString()} ${
+        pageInfo.total === 1 ? "match" : "matches"
+      }`;
+    }
+    return `${pageInfo.total.toLocaleString()} titles · page ${page} of ${pageInfo.lastPage.toLocaleString()}`;
   })();
 
   const buildHref = (newPage: number) => {

@@ -76,7 +76,9 @@ async function gql<T>(query: string, variables: Record<string, unknown> = {}): P
       Accept: "application/json",
     },
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 3600 }, // 1h ISR
+    // Short ISR window so trending / hot lists refresh roughly every 10 min.
+    // AniList rate-limits at 90 req/min unauthenticated, well within budget.
+    next: { revalidate: 600 },
   });
 
   if (!res.ok) {
