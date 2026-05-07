@@ -76,13 +76,16 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
   let chapters: Awaited<ReturnType<typeof getChapters>>["chapters"] = [];
   let mdCoverFallback: string | null = null;
 
+  let externalCount = 0;
+
   if (r.source === "mangadex") {
     // Already a MangaDex title — fetch chapters directly without resolution.
     const rawMdId = m.id.split(":")[1];
     mangadexId = rawMdId;
     try {
-      const list = await getChapters(rawMdId, "en", 200);
+      const list = await getChapters(rawMdId, "en", 200, 0, { hostableOnly: true });
       chapters = list.chapters;
+      externalCount = list.externalCount;
     } catch {
       // ignore
     }
@@ -97,11 +100,13 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
         if (md) {
           mangadexId = md.id;
           if (md.coverFileName) mdCoverFallback = coverUrl(md.id, md.coverFileName, 512);
-          const list = await getChapters(md.id, "en", 200);
+          const list = await getChapters(md.id, "en", 200, 0, { hostableOnly: true });
           if (list.chapters.length > 0) {
             chapters = list.chapters;
+            externalCount = list.externalCount;
             break;
           }
+          externalCount = Math.max(externalCount, list.externalCount);
         }
       } catch {
         // try next candidate
@@ -353,23 +358,47 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
               </section>
             )}
 
-            {chapters.length === 0 && mangadexId === null && m.type !== "novel" && m.type !== "light_novel" && (
+            {chapters.length === 0 && m.type !== "novel" && m.type !== "light_novel" && (
               <section className="panel-border bg-cream-100 p-6">
                 <h3 className="display-headline text-2xl text-ink-900 mb-2">
-                  Chapters Not Available Here
+                  {externalCount > 0
+                    ? "Chapters Hosted Externally"
+                    : "No Chapters Available"}
                 </h3>
-                <p className="text-sm text-ink-700 mb-3">
-                  We couldn&apos;t find this title on our reader source. You can read
-                  it on official sources:
+                <p className="text-sm text-ink-700 mb-4">
+                  {externalCount > 0 ? (
+                    <>
+                      This title has <strong>{externalCount}</strong> chapter
+                      {externalCount === 1 ? "" : "s"} licensed to MangaPlus or
+                      another official platform. We can&apos;t embed those, but
+                      you can read them at the publisher.
+                    </>
+                  ) : (
+                    "This title doesn't have streamable chapters on MangaDex. It may only be available through publisher subscriptions."
+                  )}
                 </p>
-                <a
-                  href={`https://anilist.co/manga/${m.id.split(":")[1]}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost"
-                >
-                  View on AniList
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  {mangadexId && (
+                    <a
+                      href={`https://mangadex.org/title/${mangadexId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-vermillion"
+                    >
+                      Open on MangaDex
+                    </a>
+                  )}
+                  {r.source === "anilist" && (
+                    <a
+                      href={`https://anilist.co/manga/${m.id.split(":")[1]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-ghost"
+                    >
+                      View on AniList
+                    </a>
+                  )}
+                </div>
               </section>
             )}
 

@@ -105,7 +105,13 @@ export function coverUrl(mangaId: string, fileName: string, size: 256 | 512 | "o
   return `${MANGADEX_UPLOADS}/covers/${mangaId}/${fileName}.${size}.jpg`;
 }
 
-export async function getChapters(mangaId: string, language = "en", limit = 100, offset = 0): Promise<{ chapters: Chapter[]; total: number }> {
+export async function getChapters(
+  mangaId: string,
+  language = "en",
+  limit = 100,
+  offset = 0,
+  opts: { hostableOnly?: boolean } = {}
+): Promise<{ chapters: Chapter[]; total: number; externalCount: number }> {
   const data = await md<any[]>(`/manga/${mangaId}/feed`, {
     "translatedLanguage[]": [language],
     "order[chapter]": "asc",
@@ -115,7 +121,7 @@ export async function getChapters(mangaId: string, language = "en", limit = 100,
     offset,
   });
 
-  const chapters: Chapter[] = (data.data ?? []).map((c: any) => {
+  const all: Chapter[] = (data.data ?? []).map((c: any) => {
     const group = c.relationships?.find((r: any) => r.type === "scanlation_group");
     return {
       id: c.id,
@@ -131,7 +137,10 @@ export async function getChapters(mangaId: string, language = "en", limit = 100,
     };
   });
 
-  return { chapters, total: data.total ?? chapters.length };
+  const externalCount = all.filter((c) => c.pages === 0).length;
+  const chapters = opts.hostableOnly ? all.filter((c) => c.pages > 0) : all;
+
+  return { chapters, total: data.total ?? all.length, externalCount };
 }
 
 export async function getChapterPages(chapterId: string): Promise<ChapterPages> {
@@ -238,18 +247,20 @@ export async function getMangaWithChapters(id: string): Promise<{
   manga: MDManga | null;
   mediaItem: MediaItem | null;
   chapters: Chapter[];
+  externalCount: number;
 }> {
   try {
     const manga = await getManga(id);
-    if (!manga) return { manga: null, mediaItem: null, chapters: [] };
-    const list = await getChapters(id, "en", 200);
+    if (!manga) return { manga: null, mediaItem: null, chapters: [], externalCount: 0 };
+    const list = await getChapters(id, "en", 200, 0, { hostableOnly: true });
     return {
       manga,
       mediaItem: mediaItemFromMD(manga),
       chapters: list.chapters,
+      externalCount: list.externalCount,
     };
   } catch {
-    return { manga: null, mediaItem: null, chapters: [] };
+    return { manga: null, mediaItem: null, chapters: [], externalCount: 0 };
   }
 }
 
