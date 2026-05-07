@@ -55,12 +55,21 @@ interface MangaPlusChapter {
   isVerticalOnly?: boolean;
 }
 
+interface ChapterGroup {
+  firstChapterList?: MangaPlusChapter[];
+  midChapterList?: MangaPlusChapter[];
+  lastChapterList?: MangaPlusChapter[];
+}
+
 interface MangaPlusDetail {
   success?: {
     titleDetailView?: {
       title?: { titleId: number; name: string };
       titleImageUrl?: string;
       overview?: string;
+      // Newer payloads nest chapters inside chapterListGroup[].
+      chapterListGroup?: ChapterGroup[];
+      // Older payloads keep them at the top level.
       firstChapterList?: MangaPlusChapter[];
       lastChapterList?: MangaPlusChapter[];
     };
@@ -89,7 +98,18 @@ async function fetchTitleDetail(titleId: number): Promise<MangaPlusDetail | null
 function chaptersFrom(detail: MangaPlusDetail): Chapter[] {
   const view = detail.success?.titleDetailView;
   if (!view) return [];
-  const all = [...(view.firstChapterList ?? []), ...(view.lastChapterList ?? [])];
+  const all: MangaPlusChapter[] = [];
+  // Modern payload: chapterListGroup is an array of {first, mid, last} groups.
+  for (const grp of view.chapterListGroup ?? []) {
+    if (grp.firstChapterList) all.push(...grp.firstChapterList);
+    if (grp.midChapterList) all.push(...grp.midChapterList);
+    if (grp.lastChapterList) all.push(...grp.lastChapterList);
+  }
+  // Legacy fallback
+  if (all.length === 0) {
+    if (view.firstChapterList) all.push(...view.firstChapterList);
+    if (view.lastChapterList) all.push(...view.lastChapterList);
+  }
   // De-duplicate by chapterId
   const seen = new Set<number>();
   const dedup = all.filter((c) => {
