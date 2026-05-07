@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RouteProgress } from "@/components/RouteProgress";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -47,12 +48,44 @@ export const metadata: Metadata = {
     description: "A premium reading platform for manhwa, manga, comics, and novels.",
     images: ["/api/og?title=Mangaverse&subtitle=Manhwa%20%C2%B7%20Manga%20%C2%B7%20Comics%20%C2%B7%20Novels&type=READING%20PLATFORM"],
   },
+  // PWA + favicon plumbing
+  manifest: "/manifest.webmanifest",
+  applicationName: "Mangaverse",
+  appleWebApp: {
+    capable: true,
+    title: "Mangaverse",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon-32.png",
+  },
+  formatDetection: {
+    telephone: false,
+    date: false,
+    address: false,
+    email: false,
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f1e8",
+  // Match the manifest theme so the iOS/Android status bar tints with the app.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
   width: "device-width",
   initialScale: 1,
+  // Allow the user to zoom (a11y) but cap so layouts don't break.
+  maximumScale: 5,
+  // Cover the iOS notch / Android camera cutout.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -71,6 +104,7 @@ export default function RootLayout({
         <Navbar />
         <main>{children}</main>
         <Footer />
+        <InstallPrompt />
         <Analytics />
         <SpeedInsights />
       </body>

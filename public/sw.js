@@ -12,22 +12,45 @@
 //   - Versioned cache name so future SW upgrades wipe the stale store cleanly.
 
 const CACHE_NAME = "mangaverse-chapters-v1";
+const SHELL_CACHE = "mangaverse-shell-v1";
 const MAX_ENTRIES = 800;
 
-self.addEventListener("install", () => {
+// Routes worth keeping warm for offline app-shell availability.
+const SHELL_URLS = [
+  "/",
+  "/library",
+  "/notifications",
+  "/offline",
+];
+
+self.addEventListener("install", (event) => {
   // Activate immediately on first install so users get offline support
   // without needing to refresh twice.
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(SHELL_CACHE).then((cache) =>
+      // Best-effort: pre-cache critical app-shell routes so /library still
+      // opens when the user is offline. Failures are non-fatal.
+      Promise.all(
+        SHELL_URLS.map((url) =>
+          fetch(url, { credentials: "same-origin" })
+            .then((res) => (res.ok ? cache.put(url, res) : null))
+            .catch(() => null)
+        )
+      )
+    )
+  );
 });
 
 self.addEventListener("activate", (event) => {
+  const valid = new Set([CACHE_NAME, SHELL_CACHE]);
   event.waitUntil(
     caches
       .keys()
       .then((names) =>
         Promise.all(
           names
-            .filter((n) => n.startsWith("mangaverse-") && n !== CACHE_NAME)
+            .filter((n) => n.startsWith("mangaverse-") && !valid.has(n))
             .map((n) => caches.delete(n))
         )
       )
@@ -120,6 +143,27 @@ async function cacheFirst(request) {
   }
 }
 
+// Network-first for navigation requests with an offline shell fallback. Lets
+// users open /library, /, etc. when offline and still see the cached app shell.
+async function navigationHandler(request) {
+  try {
+    const fresh = await fetch(request);
+    // Snapshot the latest shell into cache for next-offline fallback.
+    if (fresh.ok) {
+      const shell = await caches.open(SHELL_CACHE);
+      shell.put(request, fresh.clone()).catch(() => {});
+    }
+    return fresh;
+  } catch {
+    const shell = await caches.open(SHELL_CACHE);
+    const cached = await shell.match(request);
+    if (cached) return cached;
+    const offline = await shell.match("/offline");
+    if (offline) return offline;
+    return new Response("Offline", { status: 503 });
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   let url;
@@ -128,10 +172,19 @@ self.addEventListener("fetch", (event) => {
   } catch {
     return;
   }
-  // Only intercept same-origin proxy-image requests for chapter pages.
   if (url.origin !== self.location.origin) return;
-  if (!isChapterPageRequest(url)) return;
-  event.respondWith(cacheFirst(event.request));
+
+  // Chapter pages: cache-first, immutable.
+  if (isChapterPageRequest(url)) {
+    event.respondWith(cacheFirst(event.request));
+    return;
+  }
+
+  // Navigation requests (top-level page loads): network-first with shell fallback.
+  if (event.request.mode === "navigate") {
+    event.respondWith(navigationHandler(event.request));
+    return;
+  }
 });
 
 // Allow the page to ask "how big is the cache?" or "wipe the cache".
