@@ -27,7 +27,7 @@ export function Hero({ items }: { items: MediaItem[] }) {
   return (
     <section className="relative w-full overflow-hidden border-b-2 border-ink-900 bg-ink-900">
       <div
-        className="relative h-[68vh] min-h-[520px] w-full"
+        className="relative h-[78vh] min-h-[480px] md:h-[68vh] md:min-h-[520px] w-full"
         style={{ backgroundColor: accent + "20" }}
       >
         {/* Banner */}
@@ -106,21 +106,21 @@ export function Hero({ items }: { items: MediaItem[] }) {
                 )}
               </div>
 
-              <h1 className="display-headline text-5xl md:text-7xl lg:text-8xl text-cream leading-[0.85] mb-3 text-balance">
+              <h1 className="display-headline text-4xl sm:text-5xl md:text-7xl lg:text-8xl text-cream leading-[0.85] mb-3 text-balance">
                 {current.title.english ?? current.title.romaji ?? current.title.display}
               </h1>
               {current.title.native && (
-                <p className="font-jp text-xl text-vermillion-400 mb-5">
+                <p className="font-jp text-base md:text-xl text-vermillion-400 mb-4 md:mb-5">
                   {current.title.native}
                 </p>
               )}
 
-              <p className="mb-6 max-w-xl text-base leading-relaxed text-cream/80">
+              <p className="mb-5 md:mb-6 max-w-xl text-sm md:text-base leading-relaxed text-cream/80 line-clamp-4 md:line-clamp-none">
                 {truncate(stripHtml(current.description ?? ""), 240)}
               </p>
 
-              <div className="mb-7 flex flex-wrap gap-2">
-                {(current.genres ?? []).slice(0, 5).map((g) => (
+              <div className="mb-6 md:mb-7 flex flex-wrap gap-1.5 md:gap-2">
+                {(current.genres ?? []).slice(0, 4).map((g) => (
                   <span
                     key={g}
                     className="ink-stamp border-cream/30 bg-cream/5 text-cream/80"
@@ -130,16 +130,16 @@ export function Hero({ items }: { items: MediaItem[] }) {
                 ))}
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Link
                   href={`/title/${encodeURIComponent(current.id)}`}
-                  className="btn-vermillion border-vermillion-600"
+                  className="btn-vermillion border-vermillion-600 justify-center"
                 >
                   <BookOpen className="h-4 w-4" /> Start Reading
                 </Link>
                 <Link
                   href={`/title/${encodeURIComponent(current.id)}`}
-                  className="btn-ink border-cream bg-transparent text-cream hover:bg-cream hover:text-ink-900"
+                  className="btn-ink border-cream bg-transparent text-cream hover:bg-cream hover:text-ink-900 justify-center"
                 >
                   <Plus className="h-4 w-4" /> More Info
                 </Link>

@@ -283,16 +283,16 @@ export function Reader({
             </span>
           </Link>
 
-          <div className="text-center min-w-0">
-            <p className="text-[10px] uppercase tracking-widest text-cream/60">
+          <div className="text-center min-w-0 flex-1 px-2">
+            <p className="text-[10px] uppercase tracking-widest text-cream/60 truncate">
               Chapter {currentChapter?.number ?? "—"}
               {currentChapter?.title ? ` · ${currentChapter.title}` : ""}
               {dataSaver && pagesDataSaver && pagesDataSaver.length > 0 && (
-                <span className="ml-2 text-vermillion-400">· Data Saver</span>
+                <span className="ml-2 text-vermillion-400">· DS</span>
               )}
             </p>
             {mode !== "vertical" && (
-              <p className="text-xs font-bold text-cream">
+              <p className="text-xs font-bold text-cream tabular-nums">
                 Page {page + 1} / {activePages.length}
               </p>
             )}
@@ -506,7 +506,7 @@ export function Reader({
                       setShowChapters(false);
                     }}
                     className={cn(
-                      "block w-full text-left px-4 py-3 hover:bg-vermillion-50",
+                      "block w-full text-left px-4 py-4 hover:bg-vermillion-50 active:bg-vermillion-100",
                       c.id === chapterId && "bg-vermillion-100 font-bold"
                     )}
                   >

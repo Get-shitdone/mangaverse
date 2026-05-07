@@ -220,7 +220,7 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
                   )}
                 </div>
 
-                <h1 className="display-headline text-4xl md:text-6xl lg:text-7xl text-cream leading-[0.9] mb-2 text-balance">
+                <h1 className="display-headline text-3xl sm:text-4xl md:text-6xl lg:text-7xl text-cream leading-[0.9] mb-2 text-balance">
                   {m.title.english ?? m.title.romaji ?? m.title.display}
                 </h1>
                 {m.title.native && (

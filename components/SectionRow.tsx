@@ -50,21 +50,21 @@ export function SectionRow({
   };
 
   return (
-    <section className="my-12">
+    <section className="my-8 md:my-12">
       <div className="mx-auto max-w-[1600px] px-4 md:px-8">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div className="flex items-baseline gap-3">
+        <div className="mb-4 md:mb-5 flex items-end justify-between gap-3">
+          <div className="flex items-baseline gap-2 md:gap-3 min-w-0">
             {kanji && (
-              <span className="font-jp text-2xl text-vermillion-600 leading-none">
+              <span className="font-jp text-lg md:text-2xl text-vermillion-600 leading-none shrink-0">
                 {kanji}
               </span>
             )}
-            <div>
-              <h2 className="display-headline text-3xl md:text-5xl text-ink-900 leading-none">
+            <div className="min-w-0">
+              <h2 className="display-headline text-2xl sm:text-3xl md:text-5xl text-ink-900 leading-none truncate">
                 {title}
               </h2>
               {subtitle && (
-                <p className="mt-1 text-xs uppercase tracking-widest text-ink-700">
+                <p className="mt-1 text-[10px] md:text-xs uppercase tracking-widest text-ink-700 line-clamp-1">
                   {subtitle}
                 </p>
               )}

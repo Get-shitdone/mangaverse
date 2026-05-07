@@ -32,6 +32,22 @@ body {
     radial-gradient(rgba(10, 10, 10, 0.04) 1px, transparent 1px);
   background-size: 12px 12px;
   background-attachment: fixed;
+  /* Respect iPhone notch/home-indicator safe areas. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Touch tap targets — Apple HIG minimum 44pt, Material 48dp. */
+@media (pointer: coarse) {
+  a, button, input, select, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Disable text selection on tap-zone overlays in the reader */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 ::selection {
@@ -115,19 +131,19 @@ body {
   }
 
   .btn-ink {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-ink-900 bg-ink-900 px-5 py-3 text-sm font-bold uppercase tracking-widest text-cream transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 border-2 border-ink-900 bg-ink-900 px-5 py-3 text-sm font-bold uppercase tracking-widest text-cream transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-vermillion {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-ink-900 bg-vermillion-600 px-5 py-3 text-sm font-bold uppercase tracking-widest text-cream transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-50;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 border-2 border-ink-900 bg-vermillion-600 px-5 py-3 text-sm font-bold uppercase tracking-widest text-cream transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none active:scale-[0.98] disabled:opacity-50;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-ink-900 bg-cream px-5 py-3 text-sm font-bold uppercase tracking-widest text-ink-900 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 border-2 border-ink-900 bg-cream px-5 py-3 text-sm font-bold uppercase tracking-widest text-ink-900 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none active:scale-[0.98];
   }
 
   .chip {
-    @apply inline-flex items-center rounded-full border border-ink-900 bg-cream px-3 py-1 text-xs font-bold uppercase tracking-widest text-ink-900 transition-colors hover:bg-ink-900 hover:text-cream;
+    @apply inline-flex items-center shrink-0 rounded-full border border-ink-900 bg-cream px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-ink-900 transition-colors hover:bg-ink-900 hover:text-cream active:scale-95;
   }
 
   .chip-active {

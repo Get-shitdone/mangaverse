@@ -56,8 +56,8 @@ export function BrowseFilterBar({ genres }: { genres: string[] }) {
 
   return (
     <div className="border-b-2 border-ink-900 bg-cream sticky top-[57px] z-30 backdrop-blur">
-      <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-4 space-y-4">
-        <div className="flex flex-wrap gap-3 items-center">
+      <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-3 md:py-4 space-y-3 md:space-y-4">
+        <div className="flex flex-col md:flex-row md:flex-wrap gap-2 md:gap-3 md:items-center">
           <FilterGroup label="Type">
             {COUNTRIES.map((c) => (
               <button
@@ -162,8 +162,8 @@ export function BrowseFilterBar({ genres }: { genres: string[] }) {
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-[10px] uppercase tracking-widest font-bold text-ink-700 mr-1">
+    <div className="flex items-center gap-2 overflow-x-auto md:flex-wrap scrollbar-none -mx-4 md:mx-0 px-4 md:px-0">
+      <span className="text-[10px] uppercase tracking-widest font-bold text-ink-700 mr-1 shrink-0">
         {label}:
       </span>
       {children}

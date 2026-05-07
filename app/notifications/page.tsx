@@ -69,9 +69,9 @@ export default function NotificationsPage() {
     return (
       <div className="bg-cream min-h-screen pb-20">
         <header className="border-b-2 border-ink-900 bg-cream-100 halftone-bg">
-          <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-12">
+          <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-8 md:py-12">
             <p className="font-jp text-vermillion-600 text-lg mb-2">通知</p>
-            <h1 className="display-headline text-5xl md:text-7xl text-ink-900">Notifications</h1>
+            <h1 className="display-headline text-4xl sm:text-5xl md:text-7xl text-ink-900">Notifications</h1>
           </div>
         </header>
       </div>
@@ -84,7 +84,7 @@ export default function NotificationsPage() {
   return (
     <div className="bg-cream min-h-screen pb-20">
       <header className="border-b-2 border-ink-900 bg-cream-100 halftone-bg">
-        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-12">
+        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-8 md:py-12">
           <Link
             href="/library"
             className="inline-flex items-center gap-1 text-xs uppercase tracking-widest font-bold text-ink-700 hover:text-vermillion-600 mb-3"
@@ -92,7 +92,7 @@ export default function NotificationsPage() {
             ← Back to Library
           </Link>
           <p className="font-jp text-vermillion-600 text-lg mb-2">通知</p>
-          <h1 className="display-headline text-5xl md:text-7xl text-ink-900 mb-3">
+          <h1 className="display-headline text-4xl sm:text-5xl md:text-7xl text-ink-900 mb-3">
             Notifications
           </h1>
           <p className="text-sm uppercase tracking-widest text-ink-700">

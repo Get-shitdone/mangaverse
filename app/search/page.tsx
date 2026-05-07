@@ -20,9 +20,9 @@ export default async function SearchPage({
   return (
     <div className="bg-cream pb-20">
       <header className="border-b-2 border-ink-900 bg-cream-100 halftone-bg">
-        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-12">
+        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-8 md:py-12">
           <p className="font-jp text-vermillion-600 text-lg mb-2">検索</p>
-          <h1 className="display-headline text-5xl md:text-7xl text-ink-900 mb-6">
+          <h1 className="display-headline text-4xl sm:text-5xl md:text-7xl text-ink-900 mb-6">
             Search
           </h1>
           <SearchBar initial={q} />

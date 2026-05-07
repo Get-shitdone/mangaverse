@@ -39,7 +39,7 @@ export function SourcePicker({
         <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="absolute right-0 z-30 mt-1 w-72 panel-border bg-cream">
+        <div className="absolute right-0 z-30 mt-1 w-[min(20rem,calc(100vw-2rem))] panel-border bg-cream">
           <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-widest font-bold text-ink-700 border-b border-ink-200">
             Switch reading source
           </p>

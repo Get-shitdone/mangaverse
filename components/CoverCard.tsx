@@ -25,10 +25,10 @@ export function CoverCard({
   const ratio = "aspect-[2/3]";
   const widthCls =
     size === "small"
-      ? "w-[140px]"
+      ? "w-[120px] sm:w-[140px]"
       : size === "large"
-      ? "w-[220px] md:w-[260px]"
-      : "w-[170px] md:w-[200px]";
+      ? "w-[180px] sm:w-[220px] md:w-[260px]"
+      : "w-[140px] sm:w-[170px] md:w-[200px]";
 
   const cover = media.coverImage.large ?? media.coverImage.medium;
   const accent = media.coverImage.color ?? "#c1272d";

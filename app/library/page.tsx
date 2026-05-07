@@ -49,9 +49,9 @@ export default function LibraryPage() {
     return (
       <div className="bg-cream min-h-screen pb-20">
         <header className="border-b-2 border-ink-900 bg-cream-100 halftone-bg">
-          <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-12">
+          <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-8 md:py-12">
             <p className="font-jp text-vermillion-600 text-lg mb-2">私の図書館</p>
-            <h1 className="display-headline text-5xl md:text-7xl text-ink-900">
+            <h1 className="display-headline text-4xl sm:text-5xl md:text-7xl text-ink-900">
               My Library
             </h1>
           </div>
@@ -63,9 +63,9 @@ export default function LibraryPage() {
   return (
     <div className="bg-cream min-h-screen pb-20">
       <header className="border-b-2 border-ink-900 bg-cream-100 halftone-bg">
-        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-12">
+        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-8 md:py-12">
           <p className="font-jp text-vermillion-600 text-lg mb-2">私の図書館</p>
-          <h1 className="display-headline text-5xl md:text-7xl text-ink-900 mb-3">
+          <h1 className="display-headline text-4xl sm:text-5xl md:text-7xl text-ink-900 mb-3">
             My Library
           </h1>
           <p className="text-sm uppercase tracking-widest text-ink-700 mb-4">

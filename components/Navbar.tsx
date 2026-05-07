@@ -91,7 +91,7 @@ export function Navbar() {
       </div>
 
       {open && (
-        <div className="md:hidden border-t-2 border-ink-900 bg-cream px-4 py-2">
+        <div className="md:hidden border-t-2 border-ink-900 bg-cream px-4 py-1 max-h-[80vh] overflow-y-auto">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active =
@@ -103,12 +103,13 @@ export function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-2 py-3 text-sm font-bold uppercase tracking-widest border-b border-ink-200 last:border-b-0",
-                  active ? "text-vermillion-600" : "text-ink-900"
+                  "flex items-center gap-3 px-2 py-4 text-sm font-bold uppercase tracking-widest border-b border-ink-200 last:border-b-0 transition-colors",
+                  active ? "text-vermillion-600 bg-vermillion-50" : "text-ink-900 active:bg-ink-100"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                {active && <span className="h-2 w-2 rounded-full bg-vermillion-600" />}
               </Link>
             );
           })}

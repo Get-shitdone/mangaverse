@@ -63,9 +63,9 @@ export default async function BrowsePage({ searchParams }: { searchParams: Searc
     <div className="bg-cream pb-20">
       {/* Header */}
       <header className="border-b-2 border-ink-900 bg-cream-100 halftone-bg">
-        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-12">
+        <div className="mx-auto max-w-[1600px] px-4 md:px-8 py-8 md:py-12">
           <p className="font-jp text-vermillion-600 text-lg mb-2">図書館</p>
-          <h1 className="display-headline text-5xl md:text-7xl text-ink-900 mb-3">{heading}</h1>
+          <h1 className="display-headline text-4xl sm:text-5xl md:text-7xl text-ink-900 mb-3">{heading}</h1>
           <p className="text-sm uppercase tracking-widest text-ink-700">{subtitle}</p>
         </div>
       </header>

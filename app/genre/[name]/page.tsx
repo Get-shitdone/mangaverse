@@ -79,9 +79,9 @@ export default async function GenrePage({ params }: { params: { name: string } }
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-ink-900 via-ink-900/80 to-transparent" />
 
-        <div className="relative mx-auto max-w-[1600px] px-4 md:px-8 py-20 md:py-28">
+        <div className="relative mx-auto max-w-[1600px] px-4 md:px-8 py-12 md:py-28">
           <p className="font-jp text-vermillion-400 text-2xl mb-3">{kanji}</p>
-          <h1 className="display-headline text-6xl md:text-9xl text-cream leading-[0.85] mb-4">
+          <h1 className="display-headline text-5xl sm:text-6xl md:text-9xl text-cream leading-[0.85] mb-4">
             {knownGenre}
           </h1>
           <p className="max-w-xl text-cream/80 text-lg mb-6">
