@@ -1,7 +1,15 @@
 import { NextRequest } from "next/server";
+import { isSafeRemoteHttps } from "@/lib/validate";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Defensive size cap — chapter pages and covers don't exceed this. Anything
+// larger is almost certainly an abuse attempt or misconfigured upstream.
+const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+// Upstream timeout — fail fast so a hanging upstream doesn't chew lambda time.
+const UPSTREAM_TIMEOUT_MS = 10_000;
 
 const ALLOW_HOSTS = new Set([
   "uploads.mangadex.org",
@@ -93,22 +101,38 @@ function isImmutableContent(url: URL): boolean {
 }
 
 export async function GET(req: NextRequest) {
+  // Per-IP rate limit. Image-heavy pages legitimately fan out to many
+  // requests, so the bucket is generous (300 req burst, ~5/sec sustained).
+  const limited = rateLimitOrReject(req, "proxy-image", { max: 300, refill: 5 });
+  if (limited) return limited;
+
   const url = req.nextUrl.searchParams.get("url");
   const refererOverride = req.nextUrl.searchParams.get("referer");
   if (!url) return new Response("Missing url param", { status: 400 });
 
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return new Response("Invalid url", { status: 400 });
+  // SSRF guard + URL hygiene: reject non-HTTPS, embedded credentials, private
+  // IP literals, and over-length URLs.
+  const checked = isSafeRemoteHttps(url);
+  if (!checked.ok) {
+    return new Response(`Rejected: ${checked.reason}`, { status: 400 });
   }
+  const parsed = checked.url;
 
   if (!isAllowed(parsed.hostname)) {
     return new Response(`Host not allowed: ${parsed.hostname}`, { status: 403 });
   }
 
-  const referer = refererOverride ?? HOSTS_WITH_REFERER[parsed.hostname] ?? "https://mangadex.org/";
+  // Tighter referer override: only allow well-formed HTTPS URLs, never a raw
+  // attacker-controlled string echoed back in the upstream Referer header.
+  let referer = HOSTS_WITH_REFERER[parsed.hostname] ?? "https://mangadex.org/";
+  if (refererOverride) {
+    const checkedRef = isSafeRemoteHttps(refererOverride);
+    if (checkedRef.ok) referer = refererOverride;
+  }
+
+  // Abort upstream if it hangs.
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort("upstream_timeout"), UPSTREAM_TIMEOUT_MS);
 
   try {
     const upstream = await fetch(parsed.toString(), {
@@ -118,7 +142,20 @@ export async function GET(req: NextRequest) {
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       },
       cache: "force-cache",
+      signal: ac.signal,
     });
+    clearTimeout(timer);
+
+    // Enforce size cap up-front via Content-Length when the upstream provides
+    // it; otherwise fall back to streaming-side enforcement (Edge Runtime
+    // would do this differently; nodejs runtime trusts the Content-Length).
+    const lenHeader = upstream.headers.get("content-length");
+    if (lenHeader) {
+      const len = parseInt(lenHeader, 10);
+      if (Number.isFinite(len) && len > MAX_BYTES) {
+        return new Response("Upstream too large", { status: 502 });
+      }
+    }
 
     if (!upstream.ok) {
       // Cache failed lookups briefly so a single bad URL doesn't hammer the
@@ -165,11 +202,26 @@ export async function GET(req: NextRequest) {
     if (upstreamLength) headers["Content-Length"] = upstreamLength;
     if (upstreamEtag) headers.ETag = upstreamEtag;
 
+    // Lock down the response further:
+    //   X-Content-Type-Options: nosniff prevents browsers from inferring a
+    //   different MIME (e.g., interpreting an "image" as HTML and executing JS).
+    //   Cross-Origin-Resource-Policy: same-origin keeps these bytes from
+    //   being hot-linked off the site.
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["Cross-Origin-Resource-Policy"] = "same-origin";
+
     return new Response(upstream.body, {
       status: 200,
       headers,
     });
   } catch (e) {
-    return new Response(`Proxy error: ${(e as Error).message}`, { status: 500 });
+    clearTimeout(timer);
+    // Don't echo upstream error details to the client — could include
+    // internal hostnames or stack traces. Log server-side only.
+    const isAbort =
+      e instanceof Error && (e.name === "AbortError" || e.message === "upstream_timeout");
+    return new Response(isAbort ? "Upstream timed out" : "Proxy error", {
+      status: isAbort ? 504 : 500,
+    });
   }
 }

@@ -3,14 +3,47 @@ import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+// Safe-string helper for OG params: cap length and strip control chars so
+// nothing odd lands inside the rendered SVG/PNG. Edge runtime so we keep
+// this dependency-free.
+function safeOg(s: string | null, fallback: string, max = 200): string {
+  if (!s) return fallback;
+  let out = "";
+  for (let i = 0; i < s.length && out.length < max; i++) {
+    const c = s.charCodeAt(i);
+    if ((c < 0x20 && c !== 0x09) || c === 0x7f) continue;
+    out += s[i];
+  }
+  return out || fallback;
+}
+
+function safeAccent(s: string | null): string {
+  // Hex colors only — defang anything else.
+  if (s && /^#[0-9a-f]{3,8}$/i.test(s)) return s;
+  return "#c1272d";
+}
+
+function safeCover(s: string | null): string | null {
+  if (!s) return null;
+  if (s.length > 1024) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "https:") return null;
+    if (u.username || u.password) return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const title = searchParams.get("title") ?? "Mangaverse";
-  const subtitle = searchParams.get("subtitle") ?? "Manhwa · Manga · Comics · Novels";
-  const cover = searchParams.get("cover");
-  const accent = searchParams.get("accent") ?? "#c1272d";
-  const type = searchParams.get("type") ?? "FEATURED";
-  const score = searchParams.get("score");
+  const title = safeOg(searchParams.get("title"), "Mangaverse", 120);
+  const subtitle = safeOg(searchParams.get("subtitle"), "Manhwa · Manga · Comics · Novels", 200);
+  const cover = safeCover(searchParams.get("cover"));
+  const accent = safeAccent(searchParams.get("accent"));
+  const type = safeOg(searchParams.get("type"), "FEATURED", 60);
+  const score = safeOg(searchParams.get("score"), "", 6);
 
   return new ImageResponse(
     (

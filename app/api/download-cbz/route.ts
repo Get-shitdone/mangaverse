@@ -2,10 +2,26 @@ import { NextRequest } from "next/server";
 import { getAdapter } from "@/lib/sources/aggregator";
 import type { SourceId } from "@/lib/sources/types";
 import { buildZip } from "@/lib/zip-stream";
+import { asSourceId, asTrimmedString, isSafeRemoteHttps } from "@/lib/validate";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const ALLOWED_SOURCES = new Set<SourceId>([
+  "mangadex",
+  "consumet-mangakakalot",
+  "consumet-mangapill",
+  "consumet-mangapark",
+  "consumet-mangahere",
+  "consumet-mangareader",
+  "mangaplus",
+]);
+
+const PER_PAGE_TIMEOUT_MS = 8_000;
+const MAX_PAGES = 250;
+const MAX_PAGE_BYTES = 8 * 1024 * 1024; // 8 MB per page hard cap
 
 const PROXY_HOSTS_REFERER: Record<string, string> = {
   "uploads.mangadex.org": "https://mangadex.org/",
@@ -43,11 +59,22 @@ function decodeProxyUrl(u: string): { url: string; referer?: string } | null {
 }
 
 export async function GET(req: NextRequest) {
-  const source = (req.nextUrl.searchParams.get("source") ?? "mangadex") as SourceId;
-  const srcId = req.nextUrl.searchParams.get("srcId") ?? "";
-  const chapterId = req.nextUrl.searchParams.get("chapterId");
-  const titleParam = req.nextUrl.searchParams.get("title") ?? `chapter-${chapterId}`;
-  if (!chapterId) return new Response("Missing chapterId", { status: 400 });
+  // CBZ generation is heavy (fetches dozens of images), so apply a strict
+  // per-IP limit. 5 burst, ~1 / 30s sustained.
+  const limited = rateLimitOrReject(req, "cbz", { max: 5, refill: 0.033 });
+  if (limited) return limited;
+
+  const sourceParam = req.nextUrl.searchParams.get("source") ?? "mangadex";
+  if (!ALLOWED_SOURCES.has(sourceParam as SourceId)) {
+    return new Response("Unknown source", { status: 400 });
+  }
+  const source = sourceParam as SourceId;
+  const srcId = asSourceId(req.nextUrl.searchParams.get("srcId") ?? "", 200) ?? "";
+  const chapterId = asSourceId(req.nextUrl.searchParams.get("chapterId") ?? "", 200);
+  if (!chapterId) return new Response("Missing or invalid chapterId", { status: 400 });
+  const titleParam =
+    asTrimmedString(req.nextUrl.searchParams.get("title") ?? "", 120) ??
+    `chapter-${chapterId.slice(0, 8)}`;
 
   const adapter = getAdapter(source);
   if (!adapter) return new Response("Unknown source", { status: 404 });
@@ -55,14 +82,22 @@ export async function GET(req: NextRequest) {
   const { pages } = await adapter.getPages(srcId, chapterId).catch(() => ({ pages: [] }));
   if (!pages.length) return new Response("No pages", { status: 404 });
 
-  // Fetch each page server-side with the right referer.
+  // Fetch each page server-side with the right referer. Apply size + URL
+  // checks to each upstream so a malicious source can't sneak in non-image
+  // content or hammer us with multi-GB files.
   const files: { name: string; data: Uint8Array }[] = [];
-  for (let i = 0; i < pages.length; i++) {
+  let totalBytes = 0;
+  for (let i = 0; i < Math.min(pages.length, MAX_PAGES); i++) {
     const decoded = decodeProxyUrl(pages[i]);
     if (!decoded) continue;
+
+    const checked = isSafeRemoteHttps(decoded.url);
+    if (!checked.ok) continue;
+    const referer = decoded.referer ?? chooseReferer(checked.url.hostname);
+
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort("page_timeout"), PER_PAGE_TIMEOUT_MS);
     try {
-      const parsed = new URL(decoded.url);
-      const referer = decoded.referer ?? chooseReferer(parsed.hostname);
       const res = await fetch(decoded.url, {
         headers: {
           Referer: referer,
@@ -70,25 +105,36 @@ export async function GET(req: NextRequest) {
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
         },
         cache: "force-cache",
+        signal: ac.signal,
       });
+      clearTimeout(timer);
       if (!res.ok) continue;
-      const buf = new Uint8Array(await res.arrayBuffer());
       const ct = res.headers.get("content-type") ?? "image/jpeg";
+      // Only accept image bytes — never let a 200-OK HTML page sneak through
+      // as a "chapter page" and end up archived as a fake .jpg.
+      if (!ct.startsWith("image/")) continue;
+      const cl = res.headers.get("content-length");
+      if (cl && parseInt(cl, 10) > MAX_PAGE_BYTES) continue;
+      const buf = new Uint8Array(await res.arrayBuffer());
+      if (buf.byteLength > MAX_PAGE_BYTES) continue;
+      totalBytes += buf.byteLength;
       const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
       files.push({
         name: `${String(i + 1).padStart(3, "0")}.${ext}`,
         data: buf,
       });
     } catch {
+      clearTimeout(timer);
       // skip page on error
     }
   }
 
   if (!files.length) return new Response("No pages downloaded", { status: 502 });
 
+  // Defang the filename so an attacker can't embed CRLF or directory hops in
+  // Content-Disposition. Already stripped to alphanumeric + -, but double-cap.
   const safe = titleParam.replace(/[^\w-]/g, "_").slice(0, 80);
   const zip = buildZip(files);
-  // Hand back the underlying buffer slice — Response's BodyInit accepts ArrayBuffer.
   const body = zip.buffer.slice(zip.byteOffset, zip.byteOffset + zip.byteLength) as ArrayBuffer;
 
   return new Response(body, {
@@ -98,6 +144,7 @@ export async function GET(req: NextRequest) {
       "Content-Disposition": `attachment; filename="${safe}.cbz"`,
       "Content-Length": String(zip.byteLength),
       "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

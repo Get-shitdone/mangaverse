@@ -1,19 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getById } from "@/lib/api/anilist";
+import { asPositiveInt } from "@/lib/validate";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const revalidate = 3600;
 
 export async function GET(req: NextRequest) {
-  const id = req.nextUrl.searchParams.get("id");
-  if (!id) return NextResponse.json({ results: [] });
-  const idNum = parseInt(id, 10);
-  if (Number.isNaN(idNum)) return NextResponse.json({ results: [] });
+  const limited = rateLimitOrReject(req, "recs", { max: 60, refill: 1 });
+  if (limited) return limited;
+
+  const idNum = asPositiveInt(req.nextUrl.searchParams.get("id"), 10_000_000);
+  if (idNum === null) {
+    return NextResponse.json({ results: [] }, { status: 400 });
+  }
 
   try {
     const m = await getById(idNum);
-    return NextResponse.json({ results: m.recommendations ?? [] });
-  } catch (e) {
-    return NextResponse.json({ results: [], error: (e as Error).message }, { status: 500 });
+    return NextResponse.json(
+      { results: m.recommendations ?? [] },
+      {
+        headers: {
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "public, max-age=600, s-maxage=3600",
+        },
+      }
+    );
+  } catch {
+    return NextResponse.json({ results: [] }, { status: 502 });
   }
 }
