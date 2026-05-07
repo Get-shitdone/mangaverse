@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 380" role="img" aria-label="Mangaverse — Read Manhwa, Manga, Comics &amp; Novels">
+  <defs>
+    <pattern id="halftone" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#1f1f1f"/>
+    </pattern>
+    <linearGradient id="inkVignette" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#0a0a0a" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#0a0a0a" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="speed" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="rgba(245,241,232,0)"/>
+      <stop offset="50%" stop-color="rgba(245,241,232,0.18)"/>
+      <stop offset="100%" stop-color="rgba(245,241,232,0)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ink black backdrop -->
+  <rect width="1280" height="380" fill="#0a0a0a"/>
+  <rect width="1280" height="380" fill="url(#halftone)"/>
+  <rect width="1280" height="380" fill="url(#inkVignette)"/>
+
+  <!-- Speed lines (right side rail) -->
+  <g opacity="0.18">
+    <rect x="940" y="40"  width="280" height="4" fill="url(#speed)"/>
+    <rect x="970" y="80"  width="260" height="4" fill="url(#speed)"/>
+    <rect x="930" y="120" width="290" height="4" fill="url(#speed)"/>
+    <rect x="990" y="170" width="240" height="4" fill="url(#speed)"/>
+    <rect x="950" y="240" width="270" height="4" fill="url(#speed)"/>
+    <rect x="980" y="290" width="240" height="4" fill="url(#speed)"/>
+    <rect x="940" y="330" width="280" height="4" fill="url(#speed)"/>
+  </g>
+
+  <!-- Vertical kanji watermark (faded) -->
+  <text x="1180" y="60" font-family="'Noto Serif JP','YuGothic','Hiragino Sans',sans-serif"
+        font-size="120" font-weight="900" fill="#f5f1e8" opacity="0.045"
+        writing-mode="tb" letter-spacing="-12">漫画宇宙</text>
+
+  <!-- M-icon panel -->
+  <g transform="translate(60 60)">
+    <!-- ink shadow plate -->
+    <rect x="10" y="10" width="240" height="240" fill="#262626"/>
+    <!-- vermillion panel -->
+    <rect width="240" height="240" fill="#c1272d" stroke="#f5f1e8" stroke-width="6"/>
+    <!-- inset halftone -->
+    <rect width="240" height="240" fill="url(#halftone)" opacity="0.18"/>
+    <!-- gold corner notch -->
+    <polygon points="240,210 240,240 210,240" fill="#d4af37"/>
+    <!-- The bold M -->
+    <text x="120" y="180" text-anchor="middle"
+          font-family="'Bebas Neue','Anton','Oswald','Helvetica Neue Condensed Bold','Arial Narrow',sans-serif"
+          font-size="220" font-weight="900" fill="#f5f1e8"
+          letter-spacing="-6">M</text>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(340 130)">
+    <text x="0" y="0"
+          font-family="'Bebas Neue','Anton','Oswald','Helvetica Neue Condensed Bold','Arial Narrow',sans-serif"
+          font-size="120" font-weight="900" fill="#f5f1e8" letter-spacing="-2">
+      MANGA<tspan fill="#c1272d">VERSE</tspan>
+    </text>
+
+    <!-- subtitle -->
+    <text x="4" y="60"
+          font-family="'Bebas Neue','Anton','Oswald','Helvetica Neue Condensed Bold','Arial Narrow',sans-serif"
+          font-size="38" font-weight="800" fill="#f5f1e8" opacity="0.78"
+          letter-spacing="6">
+      MANHWA<tspan fill="#c1272d"> · </tspan>MANGA<tspan fill="#c1272d"> · </tspan>COMICS<tspan fill="#c1272d"> · </tspan>NOVELS
+    </text>
+
+    <!-- tagline -->
+    <text x="4" y="120"
+          font-family="'Inter','Helvetica Neue','Segoe UI',sans-serif"
+          font-size="20" font-weight="500" fill="#f5f1e8" opacity="0.68">
+      A premium reading platform — multi-source, offline-ready, ad-free, free forever.
+    </text>
+
+    <!-- kanji accent -->
+    <text x="4" y="172"
+          font-family="'Noto Serif JP','YuGothic','Hiragino Sans',sans-serif"
+          font-size="22" font-weight="700" fill="#c1272d" letter-spacing="6">
+      漫画宇宙
+    </text>
+
+    <!-- chips -->
+    <g transform="translate(0 195)">
+      <g transform="translate(0 0)">
+        <rect width="140" height="34" fill="#c1272d" stroke="#f5f1e8" stroke-width="2"/>
+        <text x="70" y="22" text-anchor="middle"
+              font-family="'Inter',sans-serif" font-size="13" font-weight="800"
+              fill="#f5f1e8" letter-spacing="3">PWA · OFFLINE</text>
+      </g>
+      <g transform="translate(160 0)">
+        <rect width="140" height="34" fill="transparent" stroke="#f5f1e8" stroke-width="2" opacity="0.7"/>
+        <text x="70" y="22" text-anchor="middle"
+              font-family="'Inter',sans-serif" font-size="13" font-weight="800"
+              fill="#f5f1e8" opacity="0.85" letter-spacing="3">FREE FOREVER</text>
+      </g>
+      <g transform="translate(320 0)">
+        <rect width="160" height="34" fill="transparent" stroke="#d4af37" stroke-width="2"/>
+        <text x="80" y="22" text-anchor="middle"
+              font-family="'Inter',sans-serif" font-size="13" font-weight="800"
+              fill="#d4af37" letter-spacing="3">NEXT.JS · VERCEL</text>
+      </g>
+    </g>
+  </g>
+</svg>

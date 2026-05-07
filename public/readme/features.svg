@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Mangaverse features">
+  <defs>
+    <pattern id="ht" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#0a0a0a" opacity="0.08"/>
+    </pattern>
+    <pattern id="htlight" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#f5f1e8" opacity="0.07"/>
+    </pattern>
+  </defs>
+
+  <!-- Cream backdrop -->
+  <rect width="1280" height="720" fill="#f5f1e8"/>
+  <rect width="1280" height="720" fill="url(#ht)"/>
+
+  <!-- Section header -->
+  <text x="60" y="80"
+        font-family="'Bebas Neue','Anton','Oswald','Arial Narrow',sans-serif"
+        font-size="80" font-weight="900" fill="#0a0a0a" letter-spacing="-2">
+    WHAT&apos;S INSIDE
+  </text>
+  <text x="62" y="115"
+        font-family="'Inter','Helvetica Neue',sans-serif"
+        font-size="14" font-weight="700" fill="#525252" letter-spacing="6">
+    SIX REASONS MANGAVERSE FEELS DIFFERENT
+  </text>
+
+  <!-- Card builder helper would be nice, but inline. Each card is a panel. -->
+
+  <!-- Row 1 -->
+  <g transform="translate(60 160)">
+    <rect width="370" height="160" fill="#ffffff" stroke="#0a0a0a" stroke-width="2"/>
+    <rect width="370" height="160" fill="url(#ht)"/>
+    <rect x="20" y="20" width="50" height="50" fill="#c1272d" stroke="#0a0a0a" stroke-width="2"/>
+    <text x="45" y="55" text-anchor="middle"
+          font-family="'Bebas Neue','Anton','Arial Narrow',sans-serif"
+          font-size="36" font-weight="900" fill="#f5f1e8">M</text>
+    <text x="90" y="44"
+          font-family="'Bebas Neue','Anton','Arial Narrow',sans-serif"
+          font-size="32" font-weight="900" fill="#0a0a0a" letter-spacing="-1">MULTI-SOURCE</text>
+    <text x="90" y="62"
+          font-family="'Inter','Helvetica Neue',sans-serif"
+          font-size="11" font-weight="700" fill="#c1272d" letter-spacing="3">7 PROVIDERS</text>
+    <text x="20" y="100"
+          font-family="'Inter','Helvetica Neue',sans-serif"
+          font-size="14" font-weight="500" fill="#404040">
+      <tspan x="20" dy="0">MangaDex, MangaPlus, MangaKakalot,</tspan>
+      <tspan x="20" dy="20">MangaPill, MangaPark, MangaReader,</tspan>
+      <tspan x="20" dy="20">MangaHere — auto-fallback per title.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(450 160)">
+    <rect width="370" height="160" fill="#ffffff" stroke="#0a0a0a" stroke-width="2"/>
+    <rect width="370" height="160" fill="url(#ht)"/>
+    <rect x="20" y="20" width="50" height="50" fill="#0a0a0a"/>
+    <text x="45" y="55" text-anchor="middle"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#d4af37">⚡</text>
+    <text x="90" y="44"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#0a0a0a" letter-spacing="-1">EDGE-CACHED</text>
+    <text x="90" y="62"
+          font-family="'Inter',sans-serif"
+          font-size="11" font-weight="700" fill="#c1272d" letter-spacing="3">VERCEL CDN</text>
+    <text x="20" y="100"
+          font-family="'Inter',sans-serif"
+          font-size="14" font-weight="500" fill="#404040">
+      <tspan x="20" dy="0">Chapter pages cached for 1 year (immutable).</tspan>
+      <tspan x="20" dy="20">Covers SWR'd 30 days. Most renders served</tspan>
+      <tspan x="20" dy="20">in 80–130ms from the nearest edge POP.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(840 160)">
+    <rect width="370" height="160" fill="#ffffff" stroke="#0a0a0a" stroke-width="2"/>
+    <rect width="370" height="160" fill="url(#ht)"/>
+    <rect x="20" y="20" width="50" height="50" fill="#c1272d" stroke="#0a0a0a" stroke-width="2"/>
+    <text x="45" y="55" text-anchor="middle"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#f5f1e8">⏚</text>
+    <text x="90" y="44"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#0a0a0a" letter-spacing="-1">OFFLINE READING</text>
+    <text x="90" y="62"
+          font-family="'Inter',sans-serif"
+          font-size="11" font-weight="700" fill="#c1272d" letter-spacing="3">SERVICE WORKER</text>
+    <text x="20" y="100"
+          font-family="'Inter',sans-serif"
+          font-size="14" font-weight="500" fill="#404040">
+      <tspan x="20" dy="0">Pages cache automatically as you read.</tspan>
+      <tspan x="20" dy="20">Re-open chapters offline, on a plane,</tspan>
+      <tspan x="20" dy="20">in the subway. 800-page rolling LRU.</tspan>
+    </text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(60 360)">
+    <rect width="370" height="160" fill="#ffffff" stroke="#0a0a0a" stroke-width="2"/>
+    <rect width="370" height="160" fill="url(#ht)"/>
+    <rect x="20" y="20" width="50" height="50" fill="#0a0a0a"/>
+    <text x="45" y="55" text-anchor="middle"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#f5f1e8">L</text>
+    <text x="90" y="44"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#0a0a0a" letter-spacing="-1">LOCAL LIBRARY</text>
+    <text x="90" y="62"
+          font-family="'Inter',sans-serif"
+          font-size="11" font-weight="700" fill="#c1272d" letter-spacing="3">NO ACCOUNT</text>
+    <text x="20" y="100"
+          font-family="'Inter',sans-serif"
+          font-size="14" font-weight="500" fill="#404040">
+      <tspan x="20" dy="0">5 status buckets, ratings, progress, JSON</tspan>
+      <tspan x="20" dy="20">export. Lives in your browser. No sign-up,</tspan>
+      <tspan x="20" dy="20">no tracking, no email harvest.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(450 360)">
+    <rect width="370" height="160" fill="#ffffff" stroke="#0a0a0a" stroke-width="2"/>
+    <rect width="370" height="160" fill="url(#ht)"/>
+    <rect x="20" y="20" width="50" height="50" fill="#c1272d" stroke="#0a0a0a" stroke-width="2"/>
+    <text x="45" y="55" text-anchor="middle"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#f5f1e8">P</text>
+    <text x="90" y="44"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#0a0a0a" letter-spacing="-1">PWA INSTALL</text>
+    <text x="90" y="62"
+          font-family="'Inter',sans-serif"
+          font-size="11" font-weight="700" fill="#c1272d" letter-spacing="3">iOS · ANDROID · DESKTOP</text>
+    <text x="20" y="100"
+          font-family="'Inter',sans-serif"
+          font-size="14" font-weight="500" fill="#404040">
+      <tspan x="20" dy="0">Tap "Install App" — home-screen icon,</tspan>
+      <tspan x="20" dy="20">animated splash, full-screen reading.</tspan>
+      <tspan x="20" dy="20">Feels native. No app-store gatekeepers.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(840 360)">
+    <rect width="370" height="160" fill="#ffffff" stroke="#0a0a0a" stroke-width="2"/>
+    <rect width="370" height="160" fill="url(#ht)"/>
+    <rect x="20" y="20" width="50" height="50" fill="#0a0a0a"/>
+    <text x="45" y="55" text-anchor="middle"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#c1272d">⌗</text>
+    <text x="90" y="44"
+          font-family="'Bebas Neue','Anton',sans-serif"
+          font-size="32" font-weight="900" fill="#0a0a0a" letter-spacing="-1">DEFENSIVE</text>
+    <text x="90" y="62"
+          font-family="'Inter',sans-serif"
+          font-size="11" font-weight="700" fill="#c1272d" letter-spacing="3">HARDENED ROUTES</text>
+    <text x="20" y="100"
+          font-family="'Inter',sans-serif"
+          font-size="14" font-weight="500" fill="#404040">
+      <tspan x="20" dy="0">SSRF guards, per-IP rate limits, strict</tspan>
+      <tspan x="20" dy="20">transport security, allowlisted hosts,</tspan>
+      <tspan x="20" dy="20">no telemetry, no third-party trackers.</tspan>
+    </text>
+  </g>
+
+  <!-- Bottom strip -->
+  <rect x="0" y="580" width="1280" height="140" fill="#0a0a0a"/>
+  <rect x="0" y="580" width="1280" height="140" fill="url(#htlight)"/>
+  <text x="640" y="640" text-anchor="middle"
+        font-family="'Bebas Neue','Anton',sans-serif"
+        font-size="50" font-weight="900" fill="#f5f1e8" letter-spacing="-1">
+    READ MORE · READ ANYWHERE · READ FREE
+  </text>
+  <text x="640" y="685" text-anchor="middle"
+        font-family="'Inter',sans-serif"
+        font-size="14" font-weight="700" fill="#c1272d" letter-spacing="6">
+    MANGAVERSE-LAC.VERCEL.APP
+  </text>
+</svg>
