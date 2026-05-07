@@ -9,6 +9,7 @@ A premium reading platform for **manhwa, manga, comics, and novels** — built w
 ## Features
 
 ### Discovery
+- **Read Now** at `/read-now` — pulled directly from MangaDex sorted by latest chapter upload, popularity, rating, or recency. Every title here is **immediately readable**.
 - Trending now, top manhwa / manhua / novels, by genre, by year — powered by AniList + MyAnimeList
 - Curated comics canon (Watchmen, Saga, Sandman, Maus…) plus Comic Vine integration when key is provided
 - 19 dedicated genre landing pages (`/genre/Action`, `/genre/Romance`, etc.) with related-genre rails
@@ -18,6 +19,7 @@ A premium reading platform for **manhwa, manga, comics, and novels** — built w
 - **Novel reader** with full text from Project Gutenberg (public-domain titles), preview + publisher link-out for the rest, three themes (cream / sepia / dark), adjustable typography
 - Real chapter pages from MangaDex, served through an image proxy that handles the Referer requirement
 - Keyboard nav (← / → / Space / F / Esc), tap zones, idle UI hide, fullscreen, chapter drawer, settings panel
+- Chapters are filtered to **hostable-only** by default (no broken external-link entries). Externally-licensed titles get a clear "Read on official source" CTA.
 
 ### Library
 - Personal watchlist with 5 status buckets (Reading / Plan / Completed / On Hold / Dropped)
@@ -96,7 +98,8 @@ Or click the Vercel deploy button on this repo and connect your GitHub account.
 
 | Route | Description |
 | --- | --- |
-| `/` | Home with hero, continue-reading, personalized recs, trending, comics canon |
+| `/` | Home with hero, Read Now feed, continue-reading, personalized recs, trending, comics canon |
+| `/read-now` | MangaDex-direct catalog — every title is readable |
 | `/browse` | Filterable catalog with type/genre/status/sort |
 | `/comics` | Curated comic canon + Comic Vine new issues |
 | `/genre/[name]` | Genre landing page with hero + categorized rails |

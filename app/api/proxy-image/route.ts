@@ -13,20 +13,59 @@ const ALLOW_HOSTS = new Set([
   "comicvine.gamespot.com",
   "static.comicvine.com",
   "cdn.myanimelist.net",
+  // Consumet aggregated providers
+  "img.mghubcdn.com",
+  "ww-cdn.mangakakalot.gg",
+  "v3.mangakakalot.gg",
+  "img.mghubcdn.com",
+  "static.mangapill.com",
+  "cdn.mangapill.com",
+  "mangapark.io",
+  "img1.mangapark.net",
+  "img2.mangapark.net",
+  "img3.mangapark.net",
+  "i.mp.kakaocdn.net",
+  "comick.pictures",
+  "meo.comick.pictures",
+  "meo2.comick.pictures",
+  "meo3.comick.pictures",
+  // MangaPlus
+  "mangaplus.shueisha.co.jp",
+  "jumpg-assets.tokyo-cdn.com",
 ]);
+
+const HOSTS_WITH_REFERER: Record<string, string> = {
+  // Most CDNs honor a generic referer of their main page.
+  "uploads.mangadex.org": "https://mangadex.org/",
+  "img.mghubcdn.com": "https://mangahere.cc/",
+  "ww-cdn.mangakakalot.gg": "https://mangakakalot.gg/",
+  "v3.mangakakalot.gg": "https://mangakakalot.gg/",
+  "static.mangapill.com": "https://mangapill.com/",
+  "cdn.mangapill.com": "https://mangapill.com/",
+  "img1.mangapark.net": "https://mangapark.io/",
+  "img2.mangapark.net": "https://mangapark.io/",
+  "img3.mangapark.net": "https://mangapark.io/",
+  "meo.comick.pictures": "https://comick.io/",
+  "meo2.comick.pictures": "https://comick.io/",
+  "meo3.comick.pictures": "https://comick.io/",
+};
 
 function isAllowed(host: string): boolean {
   if (ALLOW_HOSTS.has(host)) return true;
-  // mangadex content delivery uses subdomains like mt1.mangadex.network
   if (host.endsWith(".mangadex.network")) return true;
+  if (host.endsWith(".mangakakalot.gg")) return true;
+  if (host.endsWith(".mangapill.com")) return true;
+  if (host.endsWith(".mangapark.io")) return true;
+  if (host.endsWith(".mangapark.net")) return true;
+  if (host.endsWith(".comick.pictures")) return true;
+  if (host.endsWith(".tokyo-cdn.com")) return true;
   return false;
 }
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
-  if (!url) {
-    return new Response("Missing url param", { status: 400 });
-  }
+  const refererOverride = req.nextUrl.searchParams.get("referer");
+  if (!url) return new Response("Missing url param", { status: 400 });
 
   let parsed: URL;
   try {
@@ -39,12 +78,14 @@ export async function GET(req: NextRequest) {
     return new Response(`Host not allowed: ${parsed.hostname}`, { status: 403 });
   }
 
+  const referer = refererOverride ?? HOSTS_WITH_REFERER[parsed.hostname] ?? "https://mangadex.org/";
+
   try {
     const upstream = await fetch(parsed.toString(), {
       headers: {
-        // MangaDex requires this referer or none. Setting empty referrer policy is safer than browser default.
-        Referer: "https://mangadex.org/",
-        "User-Agent": "Mangaverse/1.0",
+        Referer: referer,
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       },
       cache: "force-cache",
     });

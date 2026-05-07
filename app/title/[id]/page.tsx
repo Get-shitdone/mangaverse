@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getById } from "@/lib/api/anilist";
 import { findFirstMangaForTitle, getChapters, coverUrl, getMangaWithChapters } from "@/lib/api/mangadex";
+import { resolveAllSources, type SourceResolution } from "@/lib/sources/aggregator";
 import { stripHtml, TYPE_LABEL, TYPE_KANJI, formatNumber } from "@/lib/utils";
 import { CoverCard } from "@/components/CoverCard";
 import { LibraryButton } from "@/components/LibraryButton";
@@ -77,6 +78,12 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
   let mdCoverFallback: string | null = null;
 
   let externalCount = 0;
+  // Multi-source aggregation. resolveAllSources fans out to MangaDex, MangaPlus,
+  // and the Consumet-aggregated providers in parallel and returns every source
+  // that found this title with chapters. The first non-empty result wins by
+  // priority; the rest are surfaced as alternatives in the source picker.
+  let allSources: SourceResolution[] = [];
+  let primarySource: SourceResolution | null = null;
 
   if (r.source === "mangadex") {
     // Already a MangaDex title — fetch chapters directly without resolution.
@@ -86,30 +93,34 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
       const list = await getChapters(rawMdId, "en", 200, 0, { hostableOnly: true });
       chapters = list.chapters;
       externalCount = list.externalCount;
+      if (list.chapters.length > 0) {
+        primarySource = {
+          source: "mangadex",
+          sourceName: "MangaDex",
+          resolvedId: rawMdId,
+          chapters: list.chapters,
+        };
+        allSources = [primarySource];
+      }
     } catch {
       // ignore
     }
   } else if (m.type !== "novel" && m.type !== "light_novel" && m.type !== "comic") {
-    // Try multiple title variants for better hit rate.
     const candidates = [m.title.english, m.title.romaji, m.title.display].filter(
       (t): t is string => Boolean(t)
     );
-    for (const candidate of candidates) {
+    if (candidates.length > 0) {
       try {
-        const md = await findFirstMangaForTitle(candidate);
-        if (md) {
-          mangadexId = md.id;
-          if (md.coverFileName) mdCoverFallback = coverUrl(md.id, md.coverFileName, 512);
-          const list = await getChapters(md.id, "en", 200, 0, { hostableOnly: true });
-          if (list.chapters.length > 0) {
-            chapters = list.chapters;
-            externalCount = list.externalCount;
-            break;
-          }
-          externalCount = Math.max(externalCount, list.externalCount);
-        }
+        allSources = await resolveAllSources(candidates[0], candidates.slice(1));
       } catch {
-        // try next candidate
+        allSources = [];
+      }
+      primarySource = allSources[0] ?? null;
+      if (primarySource) {
+        chapters = primarySource.chapters;
+        if (primarySource.source === "mangadex") {
+          mangadexId = primarySource.resolvedId;
+        }
       }
     }
   }
@@ -222,14 +233,23 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
           <aside className="space-y-6">
             {/* Action buttons */}
             <div className="flex flex-col gap-3">
-              {chapters.length > 0 && mangadexId && (
+              {chapters.length > 0 && primarySource && chapters[0].externalUrl ? (
+                <a
+                  href={chapters[0].externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-vermillion w-full"
+                >
+                  <Bookmark className="h-4 w-4" /> Read on {primarySource.sourceName}
+                </a>
+              ) : chapters.length > 0 && primarySource ? (
                 <Link
-                  href={`/read/${encodeURIComponent(m.id)}/${chapters[0].id}?md=${mangadexId}`}
+                  href={`/read/${encodeURIComponent(m.id)}/${chapters[0].id}?source=${primarySource.source}&srcId=${primarySource.resolvedId}`}
                   className="btn-vermillion w-full"
                 >
                   <Bookmark className="h-4 w-4" /> Start Reading
                 </Link>
-              )}
+              ) : null}
               {(m.type === "novel" || m.type === "light_novel") && (
                 <Link
                   href={`/read-novel/${encodeURIComponent(m.id)}`}
@@ -348,12 +368,21 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
             )}
 
             {/* Chapters */}
-            {chapters.length > 0 && mangadexId && (
+            {chapters.length > 0 && primarySource && (
               <section id="chapters">
                 <ChapterList
                   chapters={chapters}
                   mediaId={m.id}
-                  mangadexId={mangadexId}
+                  mangadexId={primarySource.resolvedId}
+                  sourceId={primarySource.source}
+                  sourceName={primarySource.sourceName}
+                  sourceOptions={allSources.map((s) => ({
+                    source: s.source,
+                    sourceName: s.sourceName,
+                    resolvedId: s.resolvedId,
+                    chapterCount: s.chapters.length,
+                    firstChapterId: s.chapters[0]?.id,
+                  }))}
                 />
               </section>
             )}

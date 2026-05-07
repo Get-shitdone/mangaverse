@@ -11,10 +11,12 @@ import {
   List,
   Maximize2,
   Minimize2,
+  Download,
+  Zap,
 } from "lucide-react";
 import type { Chapter } from "@/lib/types";
 import { useProgress } from "@/lib/store/progress";
-import { usePreferences } from "@/lib/store/preferences";
+import { usePreferences, type ZoomMode } from "@/lib/store/preferences";
 import { cn } from "@/lib/utils";
 
 type Mode = "paginated" | "vertical" | "double";
@@ -23,19 +25,30 @@ export function Reader({
   mediaId,
   chapterId,
   pages,
+  pagesDataSaver,
   chapters,
   mangadexId,
+  sourceId = "mangadex",
+  sourceName = "MangaDex",
 }: {
   mediaId: string;
   chapterId: string;
   pages: string[];
+  pagesDataSaver?: string[];
   chapters: Chapter[];
   mangadexId: string;
+  sourceId?: string;
+  sourceName?: string;
 }) {
   const router = useRouter();
   const setProgress = useProgress((s) => s.setProgress);
   const savedMode = usePreferences((s) => s.readerMode);
   const setSavedMode = usePreferences((s) => s.setReaderMode);
+  const dataSaver = usePreferences((s) => s.dataSaver);
+  const toggleDataSaver = usePreferences((s) => s.toggleDataSaver);
+  const zoomByTitle = usePreferences((s) => s.zoomByTitle);
+  const defaultZoom = usePreferences((s) => s.defaultZoom);
+  const setZoomForTitle = usePreferences((s) => s.setZoomForTitle);
 
   const [mode, setModeState] = useState<Mode>(savedMode);
   const [page, setPage] = useState(0);
@@ -48,6 +61,28 @@ export function Reader({
   const [showChapters, setShowChapters] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Pick page list — data-saver if available + enabled.
+  const activePages = useMemo(() => {
+    return dataSaver && pagesDataSaver && pagesDataSaver.length > 0
+      ? pagesDataSaver
+      : pages;
+  }, [dataSaver, pagesDataSaver, pages]);
+
+  // Per-title zoom preference.
+  const titleZoom: ZoomMode = zoomByTitle[mediaId] ?? defaultZoom;
+  const zoomClass = useMemo(() => {
+    switch (titleZoom) {
+      case "fit-width":
+        return "max-w-full h-auto";
+      case "fit-height":
+        return "max-h-[92vh] w-auto";
+      case "original":
+        return "";
+      default:
+        return "max-h-[92vh] max-w-full w-auto";
+    }
+  }, [titleZoom]);
 
   const idleTimer = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,9 +117,11 @@ export function Reader({
 
   const goToChapter = useCallback(
     (chapId: string) => {
-      router.push(`/read/${encodeURIComponent(mediaId)}/${chapId}?md=${mangadexId}`);
+      router.push(
+        `/read/${encodeURIComponent(mediaId)}/${chapId}?source=${sourceId}&srcId=${mangadexId}&md=${mangadexId}`
+      );
     },
-    [router, mediaId, mangadexId]
+    [router, mediaId, mangadexId, sourceId]
   );
 
   // Track progress. Deps intentionally minimal — chapters/setProgress are
@@ -101,6 +138,47 @@ export function Reader({
       updatedAt: Date.now(),
     });
   }, [mediaId, chapterId, page]);
+
+  // Pre-fetch the next 1-2 pages of the CURRENT chapter as the user reads, and
+  // pre-fetch the FIRST few pages of the NEXT chapter when within the last 3
+  // pages. This makes turning pages and switching chapters feel instant.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const toPreload: string[] = [];
+    // Within the current chapter
+    for (let i = 1; i <= 2; i++) {
+      if (activePages[page + i]) toPreload.push(activePages[page + i]);
+    }
+    // Approaching the end → preload start of next chapter
+    if (nextChapter && page >= activePages.length - 3) {
+      // Synchronously fetch the chapter pages JSON for the next chapter
+      // and preload its first 2 images.
+      fetch(
+        `/api/chapter-pages?source=${sourceId}&srcId=${mangadexId}&chapterId=${nextChapter.id}`
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!d?.pages) return;
+          d.pages.slice(0, 3).forEach((u: string) => {
+            const img = new Image();
+            img.src = u;
+          });
+        })
+        .catch(() => {});
+    }
+    toPreload.forEach((u) => {
+      const img = new Image();
+      img.src = u;
+    });
+  }, [page, activePages, nextChapter, sourceId, mangadexId]);
+
+  // Download chapter as CBZ (a ZIP a comic reader can open).
+  const downloadCBZ = useCallback(async () => {
+    const url = `/api/download-cbz?source=${sourceId}&srcId=${mangadexId}&chapterId=${chapterId}&title=${encodeURIComponent(
+      currentChapter?.title || `Chapter-${currentChapter?.number ?? "x"}`
+    )}`;
+    window.location.href = url;
+  }, [sourceId, mangadexId, chapterId, currentChapter]);
 
   // Idle UI hide
   const resetIdle = useCallback(() => {
@@ -163,11 +241,11 @@ export function Reader({
   const step = mode === "double" ? 2 : 1;
 
   const nextPage = () => {
-    if (page + step >= pages.length) {
+    if (page + step >= activePages.length) {
       if (nextChapter) goToChapter(nextChapter.id);
       return;
     }
-    setPage((p) => Math.min(p + step, pages.length - 1));
+    setPage((p) => Math.min(p + step, activePages.length - 1));
   };
 
   const prevPage = () => {
@@ -179,7 +257,7 @@ export function Reader({
   };
 
   const isFirstPage = page === 0;
-  const isLastPage = page >= pages.length - 1;
+  const isLastPage = page >= activePages.length - 1;
 
   return (
     <div
@@ -209,15 +287,37 @@ export function Reader({
             <p className="text-[10px] uppercase tracking-widest text-cream/60">
               Chapter {currentChapter?.number ?? "—"}
               {currentChapter?.title ? ` · ${currentChapter.title}` : ""}
+              {dataSaver && pagesDataSaver && pagesDataSaver.length > 0 && (
+                <span className="ml-2 text-vermillion-400">· Data Saver</span>
+              )}
             </p>
             {mode !== "vertical" && (
               <p className="text-xs font-bold text-cream">
-                Page {page + 1} / {pages.length}
+                Page {page + 1} / {activePages.length}
               </p>
             )}
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggleDataSaver}
+              aria-label="Data saver"
+              title={dataSaver ? "Data saver ON" : "Data saver OFF"}
+              className={cn(
+                "hidden md:flex h-9 w-9 items-center justify-center hover:text-vermillion-400",
+                dataSaver ? "text-vermillion-400" : "text-cream"
+              )}
+            >
+              <Zap className={cn("h-4 w-4", dataSaver && "fill-current")} />
+            </button>
+            <button
+              onClick={downloadCBZ}
+              aria-label="Download chapter"
+              title="Download as CBZ"
+              className="hidden md:flex h-9 w-9 items-center justify-center text-cream hover:text-vermillion-400"
+            >
+              <Download className="h-4 w-4" />
+            </button>
             <button
               onClick={() => setShowChapters(!showChapters)}
               aria-label="Chapters"
@@ -246,7 +346,7 @@ export function Reader({
       {/* Page content */}
       {mode === "vertical" ? (
         <div className="mx-auto max-w-3xl py-12 px-2 md:px-0">
-          {pages.map((src, i) => (
+          {activePages.map((src, i) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={i}
@@ -282,29 +382,29 @@ export function Reader({
       ) : (
         <div className="relative mx-auto flex min-h-screen max-w-screen-xl items-center justify-center px-2 md:px-12">
           <div className="relative flex max-h-[100dvh] w-full justify-center gap-2 py-3">
-            {mode === "double" && page + 1 < pages.length ? (
+            {mode === "double" && page + 1 < activePages.length ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={pages[page + 1]}
+                  src={activePages[page + 1]}
                   alt={`Page ${page + 2}`}
-                  className="max-h-[90vh] w-auto select-none object-contain"
+                  className={cn("select-none object-contain", zoomClass)}
                   draggable={false}
                 />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={pages[page]}
+                  src={activePages[page]}
                   alt={`Page ${page + 1}`}
-                  className="max-h-[90vh] w-auto select-none object-contain"
+                  className={cn("select-none object-contain", zoomClass)}
                   draggable={false}
                 />
               </>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={pages[page]}
+                src={activePages[page]}
                 alt={`Page ${page + 1}`}
-                className="max-h-[92vh] w-auto select-none object-contain"
+                className={cn("select-none object-contain", zoomClass)}
                 draggable={false}
               />
             )}
@@ -370,7 +470,7 @@ export function Reader({
               <input
                 type="range"
                 min={0}
-                max={pages.length - 1}
+                max={Math.max(0, activePages.length - 1)}
                 value={page}
                 onChange={(e) => setPage(parseInt(e.target.value, 10))}
                 className="flex-1 accent-vermillion-600"
@@ -451,6 +551,62 @@ export function Reader({
                 </div>
                 <p className="mt-2 text-[11px] text-ink-700">
                   Webtoon mode is best for manhwa and vertical scroll comics.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="display-headline text-lg mb-2">Zoom &amp; Fit</h4>
+                <p className="text-[10px] text-ink-700 mb-2">
+                  This setting is saved per title.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { id: "fit-screen", label: "Fit Screen" },
+                    { id: "fit-width", label: "Fit Width" },
+                    { id: "fit-height", label: "Fit Height" },
+                    { id: "original", label: "Original" },
+                  ] as { id: ZoomMode; label: string }[]).map((z) => (
+                    <button
+                      key={z.id}
+                      onClick={() => setZoomForTitle(mediaId, z.id)}
+                      className={cn(
+                        "border-2 border-ink-900 px-2 py-3 text-[10px] font-bold uppercase tracking-widest",
+                        titleZoom === z.id
+                          ? "bg-ink-900 text-cream"
+                          : "bg-cream hover:bg-cream-300"
+                      )}
+                    >
+                      {z.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="display-headline text-lg mb-2">Bandwidth</h4>
+                <button
+                  onClick={toggleDataSaver}
+                  className={cn(
+                    "w-full border-2 border-ink-900 px-3 py-3 text-xs font-bold uppercase tracking-widest text-left flex items-center justify-between",
+                    dataSaver ? "bg-vermillion-600 text-cream border-vermillion-600" : "bg-cream"
+                  )}
+                >
+                  <span>
+                    Data Saver
+                    {pagesDataSaver === undefined && (
+                      <span className="block text-[10px] font-normal opacity-60">
+                        not available from {sourceName}
+                      </span>
+                    )}
+                  </span>
+                  <span>{dataSaver ? "ON" : "OFF"}</span>
+                </button>
+              </div>
+
+              <div>
+                <h4 className="display-headline text-lg mb-2">Source</h4>
+                <p className="text-xs text-ink-700">
+                  Reading from <strong>{sourceName}</strong>. Switch sources from the title page.
                 </p>
               </div>
 
