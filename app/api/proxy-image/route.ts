@@ -62,6 +62,36 @@ function isAllowed(host: string): boolean {
   return false;
 }
 
+// Content-addressed paths: same URL = same bytes, forever. Safe to mark
+// `immutable` so browsers skip even conditional revalidation.
+function isImmutableContent(url: URL): boolean {
+  // MangaDex chapter pages: /data/<hash>/... and /data-saver/<hash>/...
+  if (url.hostname.endsWith(".mangadex.network") || url.hostname === "uploads.mangadex.org") {
+    if (url.pathname.includes("/data/") || url.pathname.includes("/data-saver/")) return true;
+  }
+  // Comick chapter pages live under hashed subdomains, all content-addressed.
+  if (url.hostname.endsWith(".comick.pictures")) return true;
+  // MangaPill chapter pages
+  if (url.hostname.endsWith(".mangapill.com") && url.pathname.startsWith("/chapters/")) {
+    return true;
+  }
+  // MangaKakalot chapter pages
+  if (
+    url.hostname.endsWith(".mangakakalot.gg") &&
+    /\/chapters?\//i.test(url.pathname)
+  ) {
+    return true;
+  }
+  // MangaPark chapter pages live under img1/img2/img3 with hashed paths
+  if (
+    /^img\d?\.mangapark\.(io|net)$/.test(url.hostname) &&
+    /\/uploads?\//i.test(url.pathname)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
   const refererOverride = req.nextUrl.searchParams.get("referer");
@@ -104,22 +134,33 @@ export async function GET(req: NextRequest) {
     const upstreamEtag = upstream.headers.get("etag");
 
     // Cache strategy:
-    //   - Browser keeps it for 1 day (max-age) so navigating back is instant.
-    //   - Vercel edge keeps it for 7 days (s-maxage=604800).
-    //   - For 30 more days after expiry, edge serves stale bytes while it
-    //     revalidates upstream in the background — covers never block a page
-    //     render even when MangaDex is slow.
-    //   - Vercel's CDN-Cache-Control beats the standard header on their edge,
-    //     so we set both for max compatibility.
-    const cacheControl =
-      "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000";
+    //   Chapter pages (content-addressed: URL contains the chapter hash → same
+    //   URL forever serves the same bytes):
+    //     - Browser:   1 year, immutable. No conditional requests, ever.
+    //     - Edge:      1 year. Stays warm forever; Vercel will GC eventually.
+    //   Covers, banners, headers (URL can be re-issued for the same title):
+    //     - Browser:   1 day for instant back-navigation.
+    //     - Edge:      7 days.
+    //     - SWR window: +30 days — the edge keeps serving stale bytes while
+    //       it revalidates in the background, so renders never block on
+    //       MangaDex slowness.
+    //   Vercel-CDN-Cache-Control beats the standard header on their edge, so
+    //   we set both for max compatibility.
+    const immutable = isImmutableContent(parsed);
+
+    const cacheControl = immutable
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000";
+
+    const cdnCacheControl = immutable
+      ? "public, s-maxage=31536000, immutable"
+      : "public, s-maxage=604800, stale-while-revalidate=2592000";
 
     const headers: Record<string, string> = {
       "Content-Type": contentType,
       "Cache-Control": cacheControl,
-      "CDN-Cache-Control": "public, s-maxage=604800, stale-while-revalidate=2592000",
-      "Vercel-CDN-Cache-Control":
-        "public, s-maxage=604800, stale-while-revalidate=2592000",
+      "CDN-Cache-Control": cdnCacheControl,
+      "Vercel-CDN-Cache-Control": cdnCacheControl,
     };
     if (upstreamLength) headers["Content-Length"] = upstreamLength;
     if (upstreamEtag) headers.ETag = upstreamEtag;
