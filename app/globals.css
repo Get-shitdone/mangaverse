@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 245 241 232; /* cream */
+  --foreground: 10 10 10; /* ink */
+  --vermillion: 193 39 45;
+  --gold: 212 175 55;
+}
+
+.dark {
+  --background: 10 10 10;
+  --foreground: 245 241 232;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-family: var(--font-inter), system-ui, sans-serif;
+  background-image:
+    radial-gradient(rgba(10, 10, 10, 0.04) 1px, transparent 1px);
+  background-size: 12px 12px;
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgb(var(--vermillion));
+  color: rgb(var(--background));
+}
+
+/* Hide scrollbars on horizontal carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom scrollbar for body */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(10, 10, 10, 0.2);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(10, 10, 10, 0.4);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+
+@layer components {
+  .panel-border {
+    @apply border-2 border-ink-900 shadow-panel;
+  }
+
+  .panel-border-sm {
+    @apply border-2 border-ink-900 shadow-panel-sm;
+  }
+
+  .panel-border-lg {
+    @apply border-[3px] border-ink-900 shadow-panel-lg;
+  }
+
+  .ink-stamp {
+    @apply inline-block rounded-sm border border-ink-900/70 bg-ink-900/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-manga text-ink-900;
+  }
+
+  .ink-stamp-vermillion {
+    @apply inline-block rounded-sm border border-vermillion-600 bg-vermillion-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-manga text-vermillion-700;
+  }
+
+  .display-headline {
+    font-family: var(--font-bebas), Impact, sans-serif;
+    @apply uppercase tracking-tight leading-[0.85];
+  }
+
+  .anton-headline {
+    font-family: var(--font-anton), Impact, sans-serif;
+    @apply uppercase tracking-tight leading-[0.95];
+  }
+
+  .speed-lines {
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 6px,
+      rgba(10, 10, 10, 0.4) 6px,
+      rgba(10, 10, 10, 0.4) 8px
+    );
+  }
+
+  .halftone-bg {
+    background-image: radial-gradient(rgba(10, 10, 10, 0.12) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+
+  .btn-ink {
+    @apply inline-flex items-center justify-center gap-2 border-2 border-ink-900 bg-ink-900 px-5 py-3 text-sm font-bold uppercase tracking-widest text-cream transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-vermillion {
+    @apply inline-flex items-center justify-center gap-2 border-2 border-ink-900 bg-vermillion-600 px-5 py-3 text-sm font-bold uppercase tracking-widest text-cream transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 border-2 border-ink-900 bg-cream px-5 py-3 text-sm font-bold uppercase tracking-widest text-ink-900 transition-all hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-panel-sm active:translate-x-0 active:translate-y-0 active:shadow-none;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full border border-ink-900 bg-cream px-3 py-1 text-xs font-bold uppercase tracking-widest text-ink-900 transition-colors hover:bg-ink-900 hover:text-cream;
+  }
+
+  .chip-active {
+    @apply bg-ink-900 text-cream;
+  }
+
+  .panel-card {
+    @apply relative overflow-hidden border-2 border-ink-900 bg-cream transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-panel;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  .writing-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+  .panel-cut-tr {
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  }
+  .panel-cut-tl {
+    clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%, 0 16px);
+  }
+  .panel-cut-br {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+  }
+}

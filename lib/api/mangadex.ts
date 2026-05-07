@@ -1,0 +1,163 @@
+import type { Chapter, ChapterPages } from "@/lib/types";
+
+const MANGADEX_API = "https://api.mangadex.org";
+const MANGADEX_UPLOADS = "https://uploads.mangadex.org";
+
+interface MDResp<T> {
+  result: string;
+  data?: T;
+  total?: number;
+  limit?: number;
+  offset?: number;
+}
+
+async function md<T>(path: string, params: Record<string, string | string[] | number | boolean | undefined> = {}, init: RequestInit = {}): Promise<MDResp<T>> {
+  const url = new URL(`${MANGADEX_API}${path}`);
+  Object.entries(params).forEach(([k, v]) => {
+    if (v == null) return;
+    if (Array.isArray(v)) {
+      v.forEach((x) => url.searchParams.append(`${k}[]`, String(x)));
+    } else {
+      url.searchParams.set(k, String(v));
+    }
+  });
+
+  const res = await fetch(url.toString(), {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+    next: { revalidate: 600 },
+  });
+
+  if (!res.ok) {
+    throw new Error(`MangaDex ${res.status}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export interface MDManga {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  year: number | null;
+  contentRating: string;
+  tags: string[];
+  altTitles: string[];
+  coverFileName?: string;
+  authors: string[];
+  artists: string[];
+}
+
+function pickEnglish(obj: Record<string, string> | null | undefined, fallback = ""): string {
+  if (!obj) return fallback;
+  return obj.en ?? obj["en-us"] ?? Object.values(obj)[0] ?? fallback;
+}
+
+export async function searchManga(title: string, limit = 8): Promise<MDManga[]> {
+  const data = await md<any[]>("/manga", {
+    title,
+    limit,
+    "order[relevance]": "desc",
+    "includes[]": ["cover_art", "author", "artist"],
+    "contentRating[]": ["safe", "suggestive", "erotica"],
+  });
+  return (data.data ?? []).map((m) => mapManga(m));
+}
+
+export async function getManga(id: string): Promise<MDManga | null> {
+  try {
+    const data = await md<any>(`/manga/${id}`, {
+      "includes[]": ["cover_art", "author", "artist"],
+    });
+    return data.data ? mapManga(data.data) : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapManga(m: any): MDManga {
+  const attrs = m.attributes;
+  const cover = m.relationships?.find((r: any) => r.type === "cover_art");
+  const authors = m.relationships?.filter((r: any) => r.type === "author").map((r: any) => r.attributes?.name).filter(Boolean) ?? [];
+  const artists = m.relationships?.filter((r: any) => r.type === "artist").map((r: any) => r.attributes?.name).filter(Boolean) ?? [];
+  return {
+    id: m.id,
+    title: pickEnglish(attrs.title, "Untitled"),
+    description: pickEnglish(attrs.description, ""),
+    status: attrs.status ?? "",
+    year: attrs.year ?? null,
+    contentRating: attrs.contentRating ?? "safe",
+    tags: (attrs.tags ?? []).map((t: any) => pickEnglish(t.attributes?.name, "")).filter(Boolean),
+    altTitles: (attrs.altTitles ?? []).map((t: any) => Object.values(t)[0] as string).filter(Boolean),
+    coverFileName: cover?.attributes?.fileName,
+    authors,
+    artists,
+  };
+}
+
+export function coverUrl(mangaId: string, fileName: string, size: 256 | 512 | "original" = 512): string {
+  if (size === "original") return `${MANGADEX_UPLOADS}/covers/${mangaId}/${fileName}`;
+  return `${MANGADEX_UPLOADS}/covers/${mangaId}/${fileName}.${size}.jpg`;
+}
+
+export async function getChapters(mangaId: string, language = "en", limit = 100, offset = 0): Promise<{ chapters: Chapter[]; total: number }> {
+  const data = await md<any[]>(`/manga/${mangaId}/feed`, {
+    "translatedLanguage[]": [language],
+    "order[chapter]": "asc",
+    "includes[]": ["scanlation_group"],
+    "contentRating[]": ["safe", "suggestive", "erotica"],
+    limit,
+    offset,
+  });
+
+  const chapters: Chapter[] = (data.data ?? []).map((c: any) => {
+    const group = c.relationships?.find((r: any) => r.type === "scanlation_group");
+    return {
+      id: c.id,
+      source: "mangadex" as const,
+      number: c.attributes?.chapter ?? null,
+      volume: c.attributes?.volume ?? null,
+      title: c.attributes?.title ?? null,
+      language: c.attributes?.translatedLanguage ?? language,
+      pages: c.attributes?.pages ?? 0,
+      publishedAt: c.attributes?.publishAt,
+      scanlationGroup: group?.attributes?.name,
+      externalUrl: c.attributes?.externalUrl ?? null,
+    };
+  });
+
+  return { chapters, total: data.total ?? chapters.length };
+}
+
+export async function getChapterPages(chapterId: string): Promise<ChapterPages> {
+  const res = await fetch(`${MANGADEX_API}/at-home/server/${chapterId}`, {
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) {
+    throw new Error(`MangaDex pages ${res.status}`);
+  }
+  const json = await res.json();
+  const baseUrl = json.baseUrl;
+  const hash = json.chapter.hash;
+  const data: string[] = json.chapter.data ?? [];
+  const dataSaver: string[] = json.chapter.dataSaver ?? [];
+
+  // Resolve URLs to a stable proxy path so the browser doesn't need referer manipulation
+  const pageUrls = data.map((file) => {
+    const direct = `${baseUrl}/data/${hash}/${file}`;
+    return `/api/proxy-image?url=${encodeURIComponent(direct)}`;
+  });
+
+  return { baseUrl, hash, data, dataSaver, pageUrls };
+}
+
+export async function findFirstMangaForTitle(title: string): Promise<MDManga | null> {
+  const list = await searchManga(title, 5);
+  if (!list.length) return null;
+  // Prefer exact case-insensitive match
+  const exact = list.find((m) => m.title.toLowerCase() === title.toLowerCase());
+  return exact ?? list[0];
+}
