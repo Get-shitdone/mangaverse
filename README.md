@@ -15,11 +15,16 @@ A premium reading platform for **manhwa, manga, comics, and novels** — built w
 - 19 dedicated genre landing pages (`/genre/Action`, `/genre/Romance`, etc.) with related-genre rails
 
 ### Reading
+- **Multi-source aggregator** — automatically tries MangaDex, MangaPlus (Shueisha official), and 5 Consumet-aggregated providers (MangaKakalot, MangaPill, MangaPark, MangaReader, MangaHere). When one source is missing a title, the next fills in. The chapter-list source picker lets users switch reading source per title.
+- **MangaPlus official integration** — Shueisha's free reader provides legal access to One Piece, Jujutsu Kaisen, Chainsaw Man, Spy×Family, MHA, Sakamoto Days, and ~20 more popular titles' first 3 + latest 3 chapters. Surfaced with an "External · Official" badge.
 - **Manga / manhwa reader** with paginated, double-page, and webtoon-vertical scroll modes
 - **Novel reader** with full text from Project Gutenberg (public-domain titles), preview + publisher link-out for the rest, three themes (cream / sepia / dark), adjustable typography
-- Real chapter pages from MangaDex, served through an image proxy that handles the Referer requirement
+- **Pre-fetching** — next 1-2 pages of current chapter and first 3 pages of next chapter load in the background. Page-turns and chapter-switches feel instant.
+- **Data-saver toggle** — when reading on cellular, switch to MangaDex's lower-resolution `dataSaver` URLs for 3-5× faster page loads.
+- **Per-title zoom & fit** — fit-screen / fit-width / fit-height / original. Saved per-title so manga and manhwa each remember their preferred view.
+- **Download as CBZ** — bundle a chapter into a `.cbz` file (a ZIP comic-readers can open) for offline reading. Streamed server-side; no third-party dependency.
 - Keyboard nav (← / → / Space / F / Esc), tap zones, idle UI hide, fullscreen, chapter drawer, settings panel
-- Chapters are filtered to **hostable-only** by default (no broken external-link entries). Externally-licensed titles get a clear "Read on official source" CTA.
+- **Page count + reading time estimates** in the chapter list (~4 pages/min heuristic)
 
 ### Library
 - Personal watchlist with 5 status buckets (Reading / Plan / Completed / On Hold / Dropped)
@@ -114,7 +119,9 @@ Or click the Vercel deploy button on this repo and connect your GitHub account.
 | `/api/og` | Dynamic OpenGraph image generator (Edge runtime) |
 | `/api/recs` | Personalized recommendations API |
 | `/api/search` | Type-ahead search API |
-| `/api/proxy-image` | MangaDex image proxy with proper Referer |
+| `/api/proxy-image` | Multi-host image proxy with proper Referer |
+| `/api/chapter-pages` | Source-agnostic page fetcher (used by reader prefetch) |
+| `/api/download-cbz` | Streams a chapter as a CBZ file |
 | `/api/chapters/updates` | Aggregator for personalized chapter updates |
 | `/feed.xml?library=...` | Personal RSS feed encoded with your library |
 | `/sitemap.xml`, `/robots.txt` | SEO essentials |
