@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLibrary } from "@/lib/store/library";
 import { useProgress } from "@/lib/store/progress";
-import { ChevronLeft, Download, Upload, Trash2, Check, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Download, Upload, Trash2, Check, AlertTriangle, WifiOff } from "lucide-react";
+import { getOfflineCacheInfo, clearOfflineCache } from "@/lib/offline-cache";
+import { cn } from "@/lib/utils";
 
 interface ExportPayload {
   schema: "mangaverse-library-v1";
@@ -21,8 +23,26 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [cacheInfo, setCacheInfo] = useState<{ entries: number; max: number } | null>(null);
+  const [confirmClearCache, setConfirmClearCache] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  // Poll the SW for cache stats on mount so we can show "X of 800 pages cached".
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    const refresh = async () => {
+      const info = await getOfflineCacheInfo();
+      if (!cancelled) setCacheInfo(info);
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [mounted]);
 
   const exportLibrary = () => {
     const payload: ExportPayload = {
@@ -150,6 +170,49 @@ export default function SettingsPage() {
               <Upload className="h-4 w-4" /> Restore backup
             </label>
           </div>
+        </section>
+
+        {/* Offline cache */}
+        <section className="panel-border bg-cream p-6 md:p-8">
+          <h2 className="display-headline text-2xl md:text-3xl text-ink-900 mb-2 flex items-center gap-3">
+            Offline reading
+            <WifiOff className="h-5 w-5 text-vermillion-600" />
+          </h2>
+          <p className="text-sm text-ink-700 mb-5">
+            {mounted && cacheInfo
+              ? `${cacheInfo.entries} of ${cacheInfo.max} chapter pages saved on this device. Reading a chapter caches it automatically — flip back to it anytime, even offline.`
+              : "Pages you read are saved on your device automatically so you can re-read them with no internet. The cache fills as you read."}
+          </p>
+          <button
+            onClick={async () => {
+              if (!confirmClearCache) {
+                setConfirmClearCache(true);
+                window.setTimeout(() => setConfirmClearCache(false), 5000);
+                return;
+              }
+              const ok = await clearOfflineCache();
+              setStatus({
+                type: ok ? "success" : "error",
+                msg: ok ? "Offline cache cleared" : "Couldn't clear cache (browser may not support it)",
+              });
+              setConfirmClearCache(false);
+              setCacheInfo({ entries: 0, max: cacheInfo?.max ?? 800 });
+            }}
+            className={cn(
+              "inline-flex items-center justify-center gap-2 border-2 px-5 py-3 text-sm font-bold uppercase tracking-widest transition-all",
+              confirmClearCache
+                ? "border-vermillion-700 bg-vermillion-700 text-cream hover:bg-vermillion-800"
+                : "border-ink-900 bg-cream text-ink-900 hover:bg-ink-900 hover:text-cream"
+            )}
+          >
+            <Trash2 className="h-4 w-4" />
+            {confirmClearCache ? "Click again to confirm" : "Clear offline cache"}
+          </button>
+          {mounted && !cacheInfo && (
+            <p className="text-[11px] text-ink-500 mt-3">
+              Offline cache is unavailable in this browser.
+            </p>
+          )}
         </section>
 
         {/* Clear */}

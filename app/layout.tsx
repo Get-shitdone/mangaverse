@@ -6,6 +6,7 @@ import { bebas, anton, inter, dmSerif, notoJp } from "@/lib/fonts";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { RouteProgress } from "@/components/RouteProgress";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -66,6 +67,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <RouteProgress />
         </Suspense>
+        <ServiceWorkerRegister />
         <Navbar />
         <main>{children}</main>
         <Footer />
