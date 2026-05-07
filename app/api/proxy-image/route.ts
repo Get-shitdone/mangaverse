@@ -91,16 +91,42 @@ export async function GET(req: NextRequest) {
     });
 
     if (!upstream.ok) {
-      return new Response(`Upstream ${upstream.status}`, { status: upstream.status });
+      // Cache failed lookups briefly so a single bad URL doesn't hammer the
+      // upstream every page-load, but expire fast so transient outages clear.
+      return new Response(`Upstream ${upstream.status}`, {
+        status: upstream.status,
+        headers: { "Cache-Control": "public, max-age=60, s-maxage=60" },
+      });
     }
 
     const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    const upstreamLength = upstream.headers.get("content-length");
+    const upstreamEtag = upstream.headers.get("etag");
+
+    // Cache strategy:
+    //   - Browser keeps it for 1 day (max-age) so navigating back is instant.
+    //   - Vercel edge keeps it for 7 days (s-maxage=604800).
+    //   - For 30 more days after expiry, edge serves stale bytes while it
+    //     revalidates upstream in the background — covers never block a page
+    //     render even when MangaDex is slow.
+    //   - Vercel's CDN-Cache-Control beats the standard header on their edge,
+    //     so we set both for max compatibility.
+    const cacheControl =
+      "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000";
+
+    const headers: Record<string, string> = {
+      "Content-Type": contentType,
+      "Cache-Control": cacheControl,
+      "CDN-Cache-Control": "public, s-maxage=604800, stale-while-revalidate=2592000",
+      "Vercel-CDN-Cache-Control":
+        "public, s-maxage=604800, stale-while-revalidate=2592000",
+    };
+    if (upstreamLength) headers["Content-Length"] = upstreamLength;
+    if (upstreamEtag) headers.ETag = upstreamEtag;
+
     return new Response(upstream.body, {
       status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400, s-maxage=86400, immutable",
-      },
+      headers,
     });
   } catch (e) {
     return new Response(`Proxy error: ${(e as Error).message}`, { status: 500 });
