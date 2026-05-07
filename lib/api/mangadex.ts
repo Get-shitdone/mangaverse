@@ -16,7 +16,9 @@ async function md<T>(path: string, params: Record<string, string | string[] | nu
   Object.entries(params).forEach(([k, v]) => {
     if (v == null) return;
     if (Array.isArray(v)) {
-      v.forEach((x) => url.searchParams.append(`${k}[]`, String(x)));
+      // Caller may already have included the [] suffix in the key. Don't double it.
+      const baseKey = k.endsWith("[]") ? k : `${k}[]`;
+      v.forEach((x) => url.searchParams.append(baseKey, String(x)));
     } else {
       url.searchParams.set(k, String(v));
     }
