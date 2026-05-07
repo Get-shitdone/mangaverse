@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { RouteProgress } from "@/components/RouteProgress";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { SplashScreen } from "@/components/SplashScreen";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -97,6 +98,7 @@ export default function RootLayout({
       className={`${bebas.variable} ${anton.variable} ${inter.variable} ${dmSerif.variable} ${notoJp.variable}`}
     >
       <body className="min-h-screen bg-cream text-ink-900 antialiased">
+        <SplashScreen />
         <Suspense fallback={null}>
           <RouteProgress />
         </Suspense>

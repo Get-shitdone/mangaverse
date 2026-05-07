@@ -38,6 +38,7 @@ export function Footer() {
               About
             </h4>
             <ul className="space-y-2 text-sm">
+              <li><Link href="/about" className="hover:text-vermillion-400">About Mangaverse</Link></li>
               <li><Link href="/library" className="hover:text-vermillion-400">My Library</Link></li>
               <li><a href="https://anilist.co" target="_blank" rel="noopener noreferrer" className="hover:text-vermillion-400">Powered by AniList</a></li>
               <li><a href="https://mangadex.org" target="_blank" rel="noopener noreferrer" className="hover:text-vermillion-400">Chapters via MangaDex</a></li>
@@ -47,9 +48,20 @@ export function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-cream/20 pt-8 md:flex-row md:items-center">
-          <p className="text-xs uppercase tracking-widest text-cream/50">
-            Made with ink &amp; pixels. Cover art &amp; metadata © respective publishers.
-          </p>
+          <div className="text-xs uppercase tracking-widest text-cream/60 space-y-1">
+            <p>
+              Made with ink &amp; pixels by{" "}
+              <a
+                href="https://www.facebook.com/isDevGit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-vermillion-400 font-bold hover:text-cream"
+              >
+                Get-shitdone
+              </a>
+            </p>
+            <p className="text-cream/40">Cover art &amp; metadata © respective publishers.</p>
+          </div>
           <p className="font-jp text-xs text-cream/50">
             読書を楽しもう
           </p>
