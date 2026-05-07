@@ -105,6 +105,12 @@ export function coverUrl(mangaId: string, fileName: string, size: 256 | 512 | "o
   return `${MANGADEX_UPLOADS}/covers/${mangaId}/${fileName}.${size}.jpg`;
 }
 
+// Wrap a MangaDex cover URL in our image proxy so browsers don't get the
+// "You can read this on MangaDex.org" hotlink-protection placeholder.
+export function proxiedCover(mangaId: string, fileName: string, size: 256 | 512 | "original" = 512): string {
+  return `/api/proxy-image?url=${encodeURIComponent(coverUrl(mangaId, fileName, size))}`;
+}
+
 export async function getChapters(
   mangaId: string,
   language = "en",
@@ -267,7 +273,7 @@ export async function getMangaWithChapters(id: string): Promise<{
 // Map an MDManga into the unified MediaItem schema for use with CoverCard etc.
 export function mediaItemFromMD(m: MDManga): MediaItem {
   const cover = m.coverFileName
-    ? coverUrl(m.id, m.coverFileName, 512)
+    ? proxiedCover(m.id, m.coverFileName, 512)
     : null;
   return {
     id: `mangadex:${m.id}`,
@@ -282,7 +288,7 @@ export function mediaItemFromMD(m: MDManga): MediaItem {
     description: m.description,
     coverImage: {
       large: cover,
-      medium: m.coverFileName ? coverUrl(m.id, m.coverFileName, 256) : null,
+      medium: m.coverFileName ? proxiedCover(m.id, m.coverFileName, 256) : null,
       color: null,
     },
     bannerImage: null,
@@ -309,7 +315,7 @@ export function mediaItemFromMD(m: MDManga): MediaItem {
 function mediaItemFromMDRaw(m: any): MediaItem {
   const attrs = m.attributes ?? {};
   const cover = m.relationships?.find((r: any) => r.type === "cover_art");
-  const fileName = cover?.attributes?.fileName;
+  const fileName: string | undefined = cover?.attributes?.fileName;
 
   const titleObj = attrs.title ?? {};
   const display = titleObj.en ?? titleObj["en-us"] ?? Object.values(titleObj)[0] ?? "Untitled";
@@ -339,8 +345,8 @@ function mediaItemFromMDRaw(m: any): MediaItem {
     },
     description: description as string,
     coverImage: {
-      large: fileName ? coverUrl(m.id, fileName, 512) : null,
-      medium: fileName ? coverUrl(m.id, fileName, 256) : null,
+      large: fileName ? proxiedCover(m.id, fileName, 512) : null,
+      medium: fileName ? proxiedCover(m.id, fileName, 256) : null,
       color: null,
     },
     bannerImage: null,

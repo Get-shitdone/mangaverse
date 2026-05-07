@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getById } from "@/lib/api/anilist";
-import { findFirstMangaForTitle, getChapters, coverUrl, getMangaWithChapters } from "@/lib/api/mangadex";
+import { findFirstMangaForTitle, getChapters, proxiedCover, getMangaWithChapters } from "@/lib/api/mangadex";
 import { resolveAllSources, type SourceResolution } from "@/lib/sources/aggregator";
 import { stripHtml, TYPE_LABEL, TYPE_KANJI, formatNumber } from "@/lib/utils";
 import { CoverCard } from "@/components/CoverCard";
@@ -120,6 +120,16 @@ export default async function TitlePage({ params }: { params: { id: string } }) 
         chapters = primarySource.chapters;
         if (primarySource.source === "mangadex") {
           mangadexId = primarySource.resolvedId;
+          // If we resolved a MangaDex match, also try to fetch the cover so
+          // the detail-page hero falls back to it when AniList has no banner.
+          try {
+            const md = await findFirstMangaForTitle(candidates[0]);
+            if (md?.coverFileName) {
+              mdCoverFallback = proxiedCover(md.id, md.coverFileName, 512);
+            }
+          } catch {
+            // ignore
+          }
         }
       }
     }

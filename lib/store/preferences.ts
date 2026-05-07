@@ -32,7 +32,7 @@ export const usePreferences = create<PreferencesState>()(
   persist(
     (set) => ({
       nsfwEnabled: false,
-      readerMode: "paginated",
+      readerMode: "vertical",
       readerTheme: "cream",
       readerFontSize: 18,
       language: "en",
