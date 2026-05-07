@@ -37,6 +37,13 @@ A premium reading platform for **manhwa, manga, comics, and novels** — built w
 - JSON-LD structured data on every detail page (Book / ComicSeries schema)
 - Sitemap, robots.txt, Vercel Analytics + Speed Insights wired in
 
+### Chapter notifications
+- Background poll of MangaDex every 5 min while the tab is visible — no server, no account
+- Vermillion bell badge in navbar shows unread chapter count
+- `/notifications` page groups new chapters by title with quick "mark read" actions
+- **Personalized RSS feed at `/feed.xml`** — encode your library into the URL and subscribe in any reader
+- Last-seen-per-title timestamps stored locally in `mangaverse:notifications:v1`
+
 ## Stack
 
 - **Next.js 14** App Router · **TypeScript** · **Tailwind CSS** · **Edge OG**
@@ -98,12 +105,15 @@ Or click the Vercel deploy button on this repo and connect your GitHub account.
 | `/read-novel/[mediaId]` | Novel reader with type controls and themes |
 | `/library` | Personal library with status tabs and ratings |
 | `/library/stats` | Reading stats dashboard |
-| `/library/settings` | Export / import / wipe |
+| `/library/settings` | Export / import / wipe / RSS feed URL builder |
+| `/notifications` | New chapters from your library, polled from MangaDex |
 | `/search` | Full search results page |
 | `/api/og` | Dynamic OpenGraph image generator (Edge runtime) |
 | `/api/recs` | Personalized recommendations API |
 | `/api/search` | Type-ahead search API |
 | `/api/proxy-image` | MangaDex image proxy with proper Referer |
+| `/api/chapters/updates` | Aggregator for personalized chapter updates |
+| `/feed.xml?library=...` | Personal RSS feed encoded with your library |
 | `/sitemap.xml`, `/robots.txt` | SEO essentials |
 
 ## Architecture notes
